@@ -1,6 +1,7 @@
 package controllers
 
 import forms.UserForm
+
 import javax.inject.Inject
 import play.api.Logger
 import play.api.data.Form
@@ -8,8 +9,15 @@ import play.api.i18n.I18nSupport
 import play.api.libs.json.Json
 import play.api.mvc._
 import services.UserService
+import utils.Errors.{
+  ID_NOT_FOUND_ERROR,
+  ID_NOT_FOUND_OR_USERNAME_FOUND_ERROR,
+  UPDATED_OBJECT_NOT_FOUND_ERROR,
+  USERNAME_FOUND_ERROR}
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class UserController @Inject()(userService: UserService)
@@ -19,17 +27,22 @@ class UserController @Inject()(userService: UserService)
 
   def create: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(UserForm.create, "create failed") { user =>
-      userService
-        .create(user)
-        .map(user => Created(Json.toJson(user)))
+      userService.create(user).map {
+        case Success => Created(Json.toJson(user))
+        case Failure => BadRequest(USERNAME_FOUND_ERROR)
+      }
     }
   }
 
   def update: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(UserForm.create, "update failed") { user =>
-      userService
-        .update(user)
-        .map(user => Ok(Json.toJson(user)))
+      userService.update(user).map {
+        case Success => {
+          val updatedUser = Await.result(userService.get(user.id.get), Duration(10, TimeUnit.SECONDS))
+          if (updatedUser == null) BadRequest(UPDATED_OBJECT_NOT_FOUND_ERROR) else Ok(Json.toJson(updatedUser))
+        }
+        case Failure => BadRequest(ID_NOT_FOUND_OR_USERNAME_FOUND_ERROR)
+      }
     }
   }
 
@@ -42,7 +55,7 @@ class UserController @Inject()(userService: UserService)
   def get(id: Long): Action[AnyContent] = Action.async { implicit request =>
     userService
       .get(id)
-      .map(maybeUser => Ok(Json.toJson(maybeUser)))
+      .map(maybeUser => if (maybeUser.isEmpty) BadRequest(ID_NOT_FOUND_ERROR) else Ok(Json.toJson(maybeUser)))
   }
 
   def delete(id: Long): Action[AnyContent] = Action.async {

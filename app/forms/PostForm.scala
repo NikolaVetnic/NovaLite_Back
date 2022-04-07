@@ -7,7 +7,7 @@ import play.api.data.Forms.{mapping, nonEmptyText, _}
 object PostForm {
   def create: Form[Post] = Form(
     mapping(
-      "id" -> longNumber,
+      "id" -> optional(longNumber),
       "title" -> nonEmptyText,
       "content" -> nonEmptyText,
       "dateTime" -> sqlDate,

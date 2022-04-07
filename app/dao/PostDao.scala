@@ -39,7 +39,7 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
 
   private class PostTable(tag: Tag) extends Table[Post](tag, "post") {
 
-    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
     def title = column[String]("title")
     def content = column[String]("content")
     def dateTime = column[Date]("date_time")

@@ -4,7 +4,7 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.sql.Date
 
-case class Post(id: Long, title: String, content: String, dateTime: Date, ownerId: Long)
+case class Post(id: Option[Long], title: String, content: String, dateTime: Date, ownerId: Long)
 
 object Post {
 

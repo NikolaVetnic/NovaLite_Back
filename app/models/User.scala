@@ -2,7 +2,7 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class User(id: Long, username: String, firstName: String, lastName: String, password: String, imgUrl: String, roleId: Long)
+case class User(id: Option[Long], username: String, firstName: String, lastName: String, password: String, imgUrl: String, roleId: Long)
 
 object User {
 

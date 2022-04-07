@@ -7,7 +7,7 @@ import play.api.data.Forms.{mapping, nonEmptyText, _}
 object UserForm {
   def create: Form[User] = Form(
     mapping(
-      "id" -> longNumber,
+      "id" -> optional(longNumber),
       "username" -> nonEmptyText,
       "firstName" -> nonEmptyText,
       "lastName" -> nonEmptyText,

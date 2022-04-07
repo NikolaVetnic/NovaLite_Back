@@ -18,7 +18,7 @@ class PostService @Inject()(dao: PostDao, userService: UserService)(implicit ex:
   }
 
   def create(post: Post): Future[Object] = {
-    userService.exists(post.ownerId).map {
+    userService.existsId(post.ownerId).map {
       case true =>
         dao.insert(post)
         Success
@@ -28,7 +28,7 @@ class PostService @Inject()(dao: PostDao, userService: UserService)(implicit ex:
   }
 
   def update(post: Post): Future[Object] = {
-    dao.exists(post.id).map {
+    dao.exists(post.id.get).map {
       case true =>
         dao.update(post)
         Success
