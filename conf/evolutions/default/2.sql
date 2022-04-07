@@ -4,7 +4,7 @@
 -- Table `internship_project`.`user`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `internship_project`.`user` (
-    `id` INT NOT NULL,
+    `id` INT NOT NULL AUTO_INCREMENT,
     `username` VARCHAR(100) NULL,
     `first_name` VARCHAR(45) NULL,
     `last_name` VARCHAR(45) NULL,
@@ -14,10 +14,10 @@ CREATE TABLE IF NOT EXISTS `internship_project`.`user` (
     PRIMARY KEY (`id`),
     INDEX `fk_user_role_idx` (`role_id` ASC) VISIBLE,
     CONSTRAINT `fk_user_role`
-    FOREIGN KEY (`role_id`)
-    REFERENCES `internship_project`.`role` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+        FOREIGN KEY (`role_id`)
+            REFERENCES `internship_project`.`role` (`id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION)
     ENGINE = InnoDB;
 
 INSERT INTO `internship_project`.`user` (`id`, `username`, `first_name`, `last_name`, `password`, `role_id`, `img_url`) VALUES ('1', 'nikola.pacek.vetnic@gmail.com', 'Nikola', 'Vetnic', 'adMIN1234!', '1', 'https://riverlegacy.org/wp-content/uploads/2021/07/blank-profile-photo.jpeg');

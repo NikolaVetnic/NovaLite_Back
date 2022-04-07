@@ -14,10 +14,15 @@ scalaVersion := "2.13.8"
 // play.sbt.routes.RoutesKeys.routesImport += "com.example.binders._"
 
 libraryDependencies ++= Seq(
+
   evolutions,
   guice,
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+
   "mysql" % "mysql-connector-java" % "8.0.27",
+
   "com.typesafe.play" %% "play-slick" % "5.0.0",
-  "com.typesafe.play" %% "play-slick-evolutions" % "5.0.0"
+  "com.typesafe.play" %% "play-slick-evolutions" % "5.0.0",
+
+  "org.playframework.anorm" %% "anorm" % "2.6.10"
 )
