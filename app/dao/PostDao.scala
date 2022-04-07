@@ -14,28 +14,25 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
 
   private val posts = TableQuery[PostTable]
 
-  def exists(id : Long) : Future[Boolean] =
-    db.run(posts.filter(i => i.id === id).exists.result)
+  def exists(id : Long) : Future[Boolean] = db.run(posts.filter(i => i.id === id).exists.result)
 
   def all(): Future[Seq[Post]] = db.run(posts.result)
 
-  def get(id: Long): Future[Option[Post]] = {
-    db.run(posts.filter(_.id === id).result.headOption)
+  def get(id: Long): Future[Option[Post]] = db.run(posts.filter(_.id === id).result.headOption)
+
+  def insert(post: Post): Future[String] = dbConfig.db.run(
+    // TODO: is there a way to omit entering date in the POST request (same as with IDs)?
+    posts += post.copy(post.id, post.title, post.content, new Date(System.currentTimeMillis()), post.ownerId))
+      .map(res => "Post successfully added").recover {
+    case ex: Exception => ex.getCause.getMessage
   }
 
-  def insert(post: Post): Future[String] = {
-    dbConfig.db.run(posts += post).map(res => "Post successfully added").recover {
-      case ex: Exception => ex.getCause.getMessage
-    }
-  }
+  def update(post: Post): Future[Post] = db.run(
+    posts.filter(_.id === post.id)
+      .update(post.copy(post.id, post.title, post.content, new Date(System.currentTimeMillis()), post.ownerId)))
+    .map(_ => post)
 
-  def update(post: Post): Future[Post] = {
-    db.run(posts.filter(_.id === post.id).update(post)).map(_ => post)
-  }
-
-  def delete(id: Long): Future[Unit] = {
-    db.run(posts.filter(_.id === id).delete).map(_ => ())
-  }
+  def delete(id: Long): Future[Unit] = db.run(posts.filter(_.id === id).delete).map(_ => ())
 
   private class PostTable(tag: Tag) extends Table[Post](tag, "post") {
 
