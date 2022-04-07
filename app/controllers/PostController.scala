@@ -20,17 +20,19 @@ class PostController @Inject()(postService: PostService)
 
   def create: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(PostForm.create, "create failed") { post =>
-      postService
-        .create(post)
-        .map(post => Created(Json.toJson(post)))
+      postService.create(post).map {
+        case Success => Created(Json.toJson(post))
+        case Failure => BadRequest("User with ID " + post.ownerId + " not found.")
+      }
     }
   }
 
   def update: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(PostForm.create, "update failed") { post =>
-      postService
-        .update(post)
-        .map(post => Ok(Json.toJson(post)))
+      postService.update(post).map {
+        case Success => Ok(Json.toJson(post))
+        case Failure => BadRequest("Post with ID " + post.id + " not found.")
+      }
     }
   }
 

@@ -14,6 +14,9 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
 
   private val posts = TableQuery[PostTable]
 
+  def exists(id : Long) : Future[Boolean] =
+    db.run(posts.filter(i => i.id === id).exists.result)
+
   def all(): Future[Seq[Post]] = db.run(posts.result)
 
   def get(id: Long): Future[Option[Post]] = {
