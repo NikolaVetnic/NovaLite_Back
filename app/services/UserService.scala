@@ -1,12 +1,16 @@
 package services
 
-import dao.UserDAO
+import dao.UserDao
 import javax.inject.Inject
 import models.User
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserService @Inject()(dao: UserDAO)(implicit ex: ExecutionContext) {
+class UserService @Inject()(dao: UserDao)(implicit ex: ExecutionContext) {
+
+  def exists(id : Long): Future[Boolean] = {
+    dao.exists(id)
+  }
 
   def get(id: Long): Future[Option[User]] = {
     dao.get(id)

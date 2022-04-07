@@ -7,11 +7,14 @@ import slick.jdbc.JdbcProfile
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserDAO @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
+class UserDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
 
   import profile.api._
 
   private val users = TableQuery[UserTable]
+
+  def exists(id : Long) : Future[Boolean] =
+    db.run(users.filter(i => i.id === id).exists.result)
 
   def all(): Future[Seq[User]] = db.run(users.result)
 

@@ -1,6 +1,7 @@
 package controllers
 
 import forms.PostForm
+
 import javax.inject.Inject
 import play.api.Logger
 import play.api.data.Form
