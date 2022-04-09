@@ -1,6 +1,6 @@
 package controllers
 
-import forms.PostForm
+import forms.{PostDtoForm, PostForm}
 
 import javax.inject.Inject
 import play.api.Logger
@@ -9,8 +9,12 @@ import play.api.i18n.I18nSupport
 import play.api.libs.json.Json
 import play.api.mvc._
 import services.PostService
+import utils.EStatus
+import utils.ErrorMsg.UPDATED_OBJECT_NOT_FOUND_ERROR
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class PostController @Inject()(postService: PostService)
@@ -19,10 +23,20 @@ class PostController @Inject()(postService: PostService)
   lazy val logger: Logger = Logger(getClass)
 
   def create: Action[AnyContent] = Action.async { implicit request =>
-    withFormErrorHandling(PostForm.create, "create failed") { post =>
-      postService.create(post).map {
-        case Success => Created(Json.toJson(post))
-        case Failure => BadRequest("User with ID " + post.ownerId + " not found.")
+    withFormErrorHandling(PostDtoForm.create, "create failed") { postDto =>
+      postService.create(postDto).map {
+        case EStatus.Success => {
+
+          val allPosts = Await.result(
+            postService.getByTitleContentAndOwnerId(postDto.title, postDto.content, postDto.ownerId),
+            Duration(10, TimeUnit.SECONDS))
+
+          if (allPosts == null)
+            BadRequest(UPDATED_OBJECT_NOT_FOUND_ERROR)
+          else
+            Ok(Json.toJson(allPosts(allPosts.size - 1)))
+        }
+        case EStatus.Failure => BadRequest("User with ID " + postDto.ownerId + " not found.")
       }
     }
   }
@@ -30,8 +44,8 @@ class PostController @Inject()(postService: PostService)
   def update: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(PostForm.create, "update failed") { post =>
       postService.update(post).map {
-        case Success => Ok(Json.toJson(post))
-        case Failure => BadRequest("Post with ID " + post.id + " not found.")
+        case EStatus.Success => Ok(Json.toJson(post))
+        case EStatus.Failure => BadRequest("Post with ID " + post.id + " not found.")
       }
     }
   }
@@ -39,6 +53,12 @@ class PostController @Inject()(postService: PostService)
   def list: Action[AnyContent] = Action.async { implicit request =>
     postService
       .getAll()
+      .map(posts => Ok(Json.toJson(posts)))
+  }
+
+  def listByOwnerId(ownerId: Long): Action[AnyContent] = Action.async { implicit request =>
+    postService
+      .getByOwnerId(ownerId)
       .map(posts => Ok(Json.toJson(posts)))
   }
 
@@ -51,7 +71,7 @@ class PostController @Inject()(postService: PostService)
   def delete(id: Long): Action[AnyContent] = Action.async {
     postService
       .delete(id)
-      .map(_ => Ok(""))
+      .map(_ => Ok(Json.obj("status" -> "Post deleted!")))
   }
 
   private def withFormErrorHandling[A](form: Form[A], onFailureMessage: String)

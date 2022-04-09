@@ -1,0 +1,6 @@
+USER
+- CREATE : username (email) must be unique
+- UPDATE : id must exist
+
+POST
+- CREATE : ownerId must exist

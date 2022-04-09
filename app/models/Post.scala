@@ -12,3 +12,12 @@ object Post {
 
   implicit val format: OFormat[Post] = Json.format[Post]
 }
+
+case class PostDto(title: String, content: String, ownerId: Long)
+
+object PostDto {
+
+  def tupled=(Post.apply _).tupled
+
+  implicit val format: OFormat[PostDto] = Json.format[PostDto]
+}

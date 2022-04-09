@@ -1,14 +1,16 @@
 package services
 
-import dao.UserDao
+import dao.{RoleDao, UserDao}
 
 import javax.inject.Inject
 import models.User
+import utils.EStatus
+import utils.EStatus.EStatus
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
-class UserService @Inject()(dao: UserDao)(implicit ex: ExecutionContext) {
+class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: ExecutionContext) {
 
   def existsId(id: Long): Future[Boolean] = {
     dao.existsId(id)
@@ -26,23 +28,29 @@ class UserService @Inject()(dao: UserDao)(implicit ex: ExecutionContext) {
     dao.all()
   }
 
-  def create(user: User): Future[Object] = {
-    existsUsername(user.username).map {
-      case true =>
-        Failure
-      case false =>
+  def create(user: User): Future[EStatus] = {
+
+    val checkUsername = Await.result(dao.existsUsername(user.username), Duration.Inf)
+    val checkRole = Await.result(roleDao.exists(user.roleId), Duration.Inf)
+
+    if (!checkUsername && checkRole)
+      Future {
         dao.insert(user)
-        Success
-    }
+        EStatus.Success
+      }
+    else
+      Future {
+        EStatus.Failure
+      }
   }
 
-  def update(user: User): Future[Object] = {
+  def update(user: User): Future[EStatus] = {
     existsId(user.id.get).map {
       case true =>
         dao.update(user)
-        Success
+        EStatus.Success
       case false =>
-        Failure
+        EStatus.Failure
     }
   }
 

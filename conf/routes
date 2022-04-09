@@ -9,16 +9,24 @@ GET     /                           controllers.HomeController.index()
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
-# User2
+# user
 GET     /users                      controllers.UserController.list()
 GET     /users/:id                  controllers.UserController.get(id: Long)
 POST    /users                      controllers.UserController.create()
 PUT     /users                      controllers.UserController.update()
 DELETE  /users/:id                  controllers.UserController.delete(id: Long)
 
-# Posts
+# post
 GET     /posts                      controllers.PostController.list()
 GET     /posts/:id                  controllers.PostController.get(id: Long)
+GET     /posts/user/:ownerId        controllers.PostController.listByOwnerId(ownerId: Long)
 POST    /posts                      controllers.PostController.create()
 PUT     /posts                      controllers.PostController.update()
 DELETE  /posts/:id                  controllers.PostController.delete(id: Long)
+
+# post_reaction
+GET     /preact                     controllers.PostReactionController.list()
+GET     /preact/p/:postId           controllers.PostReactionController.getByPostId(postId: Long)
+GET     /preact/u/:userId/p/:postId controllers.PostReactionController.getByUserIdAndPostId(userId: Long, postId: Long)
+POST    /preact                     controllers.PostReactionController.create()
+DELETE  /preact/u/:userId/p/:postId controllers.PostReactionController.delete(userId: Long, postId: Long)

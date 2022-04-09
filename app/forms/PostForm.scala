@@ -1,6 +1,6 @@
 package forms
 
-import models.Post
+import models.{Post, PostDto}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, nonEmptyText, _}
 
@@ -13,5 +13,15 @@ object PostForm {
       "dateTime" -> sqlDate,
       "ownerId" -> longNumber
     )(Post.apply)(Post.unapply)
+  )
+}
+
+object PostDtoForm {
+  def create: Form[PostDto] = Form(
+    mapping(
+      "title" -> nonEmptyText,
+      "content" -> nonEmptyText,
+      "ownerId" -> longNumber
+    )(PostDto.apply)(PostDto.unapply)
   )
 }

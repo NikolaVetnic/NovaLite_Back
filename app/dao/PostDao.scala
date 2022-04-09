@@ -1,6 +1,6 @@
 package dao
 
-import models.Post
+import models.{Post, PostDto}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.JdbcProfile
 
@@ -14,15 +14,23 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
 
   private val posts = TableQuery[PostTable]
 
-  def exists(id : Long) : Future[Boolean] = db.run(posts.filter(i => i.id === id).exists.result)
+  def exists(id : Long) : Future[Boolean] =
+    db.run(posts.filter(i => i.id === id).exists.result)
 
-  def all(): Future[Seq[Post]] = db.run(posts.result)
+  def all(): Future[Seq[Post]] =
+    db.run(posts.result)
 
-  def get(id: Long): Future[Option[Post]] = db.run(posts.filter(_.id === id).result.headOption)
+  def get(id: Long): Future[Option[Post]] =
+    db.run(posts.filter(_.id === id).sortBy(_.id).result.headOption)
 
-  def insert(post: Post): Future[String] = dbConfig.db.run(
-    // TODO: is there a way to omit entering date in the POST request (same as with IDs)?
-    posts += post.copy(post.id, post.title, post.content, new Date(System.currentTimeMillis()), post.ownerId))
+  def getByOwnerId(ownerId: Long): Future[Seq[Post]] =
+    db.run(posts.filter(_.ownerId === ownerId).result)
+
+  def getByTitleContentAndOwnerId(title: String, content: String, ownerId: Long): Future[Seq[Post]] =
+    db.run(posts.filter(_.title === title).filter(_.content === content).filter(_.ownerId === ownerId).sortBy(_.id).result)
+
+  def insert(postDto: PostDto): Future[String] = dbConfig.db.run(
+    posts += new Post(null, postDto.title, postDto.content, new Date(System.currentTimeMillis()), 1))
       .map(res => "Post successfully added").recover {
     case ex: Exception => ex.getCause.getMessage
   }

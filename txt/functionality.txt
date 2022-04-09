@@ -1,0 +1,7 @@
+USER
+- CRUD
+
+POST
+- CRUD
+- find all by ownerId
+- find all by ownerId's friends?
