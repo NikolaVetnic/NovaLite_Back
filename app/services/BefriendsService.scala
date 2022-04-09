@@ -1,13 +1,12 @@
 package services
 
 import dao.BefriendsDao
-import models.{Befriends, PostReaction}
+import models.Befriends
 import utils.EStatus
 import utils.EStatus.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 class BefriendsService @Inject()(
   dao: BefriendsDao,
@@ -17,7 +16,7 @@ class BefriendsService @Inject()(
     dao.exists(befriends.userId0, befriends.userId1)
   }
 
-  def getAll(): Future[Seq[Befriends]] = {
+  def all(): Future[Seq[Befriends]] = {
     dao.all()
   }
 
@@ -25,37 +24,56 @@ class BefriendsService @Inject()(
     dao.get(userId0, userId1)
   }
 
+  def getRequestsByUserId(userId: Long): Future[Seq[Befriends]] = {
+    dao.getRequestsByUserId(userId)
+  }
+
+  def getFriendshipsByUserId(userId: Long): Future[Seq[Befriends]] = {
+    dao.getFriendshipsByUserId(userId)
+  }
+
   def request(befriends: Befriends): Future[EStatus] = {
 
-    val checkUser0 = Await.result(userService.existsId(befriends.userId0), Duration.Inf)
-    val checkUser1 = Await.result(userService.existsId(befriends.userId1), Duration.Inf)
-    val checkBefriends = Await.result(dao.exists(befriends.userId0, befriends.userId1), Duration.Inf)
+    val res = for {
+      b0 <- userService.existsId(befriends.userId0)
+      b1 <- userService.existsId(befriends.userId1)
+      b2 <- dao.exists(befriends.userId0, befriends.userId1)
+    } yield b0 && b1 && !b2
 
-    if (checkUser0 && checkUser1 && !checkBefriends)
-      Future {
-        dao.insert(befriends)
+    res.map {
+      case true => {
+        dao.insert(Befriends(befriends.userId0, befriends.userId1, 1))    // quick hack
         EStatus.Success
       }
-    else
-      Future { EStatus.Failure }
+      case false => {
+        EStatus.Failure
+      }
+    }
   }
 
   def accept(befriends: Befriends): Future[EStatus] = {
 
-    val fetchedBefriends = Await.result(dao.get(befriends.userId0, befriends.userId1), Duration.Inf)
-
-    if (!fetchedBefriends.isEmpty && fetchedBefriends.get.status == 0)
-      Future {
-        delete(fetchedBefriends.get.userId0, fetchedBefriends.get.userId1)
-        val newBefriends = new Befriends(fetchedBefriends.get.userId0, fetchedBefriends.get.userId1, 1)
-        dao.insert(newBefriends)
+    dao.exists(befriends.userId0, befriends.userId1).map {
+      case true => {
+        delete(befriends.userId0, befriends.userId1)
+        dao.insert(Befriends(befriends.userId0, befriends.userId1, 2))    // quick hack
         EStatus.Success
       }
-    else
-      Future { EStatus.Failure }
+      case false => {
+        EStatus.Failure
+      }
+    }
   }
 
   def delete(userId0: Long, userId1: Long): Future[Unit] = {
     dao.delete(userId0, userId1)
+  }
+
+  def deleteRequest(userId0: Long, userId1: Long): Future[Unit] = {
+    dao.deleteRequest(userId0, userId1)
+  }
+
+  def deleteFriendship(userId0: Long, userId1: Long): Future[Unit] = {
+    dao.deleteFriendship(userId0, userId1)
   }
 }

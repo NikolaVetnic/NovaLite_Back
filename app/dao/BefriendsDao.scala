@@ -22,13 +22,38 @@ class BefriendsDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   def get(userId0: Long, userId1: Long) : Future[Option[Befriends]] =
     db.run(befriendsObjects.filter(_.userId0 === userId0).filter(_.userId1 === userId1).result.headOption)
 
+  def getRequestsByUserId(userId: Long) : Future[Seq[Befriends]] =
+    getConnectionByUserId(userId, 1)
+
+  def getFriendshipsByUserId(userId: Long) : Future[Seq[Befriends]] =
+    getConnectionByUserId(userId, 2)
+
+  def getConnectionByUserId(userId: Long, status: Int) : Future[Seq[Befriends]] =
+    db.run(befriendsObjects
+      .filter(b => b.userId0 === userId || b.userId1 === userId)
+      .filter(_.status === status).result)
+
   def insert(befriends: Befriends): Future[String] =
     dbConfig.db.run(befriendsObjects += befriends).map(res => "Befriends object successfully added").recover {
       case ex: Exception => ex.getCause.getMessage
     }
 
   def delete(userId0: Long, userId1: Long): Future[Unit] =
-    db.run(befriendsObjects.filter(_.userId0 === userId0).filter(_.userId1 === userId1).delete).map(_ => ())
+    db.run(befriendsObjects
+      .filter(_.userId0 === userId0)
+      .filter(_.userId1 === userId1).delete).map(_ => ())
+
+  def deleteRequest(userId0: Long, userId1: Long): Future[Unit] =
+    deleteConnection(userId0, userId1, 1)
+
+  def deleteFriendship(userId0: Long, userId1: Long): Future[Unit] =
+    deleteConnection(userId0, userId1, 2)
+
+  def deleteConnection(userId0: Long, userId1: Long, status: Int): Future[Unit] =
+    db.run(befriendsObjects
+      .filter(_.userId0 === userId0)
+      .filter(_.userId1 === userId1)
+      .filter(_.status === status).delete).map(_ => ())
 
   private class BefriendsTable(tag: Tag) extends Table[Befriends](tag, "befriends") {
 

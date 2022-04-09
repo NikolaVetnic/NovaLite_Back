@@ -1,14 +1,12 @@
 package services
 
 import dao.PostReactionDao
-
-import javax.inject.Inject
 import models.PostReaction
 import utils.EStatus
 import utils.EStatus.EStatus
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
 
 class PostReactionService @Inject()(
   dao: PostReactionDao,
@@ -34,18 +32,22 @@ class PostReactionService @Inject()(
 
   def create(postReaction: PostReaction): Future[EStatus] = {
 
-    val checkPost = Await.result(postService.exists(postReaction.postId), Duration.Inf)
-    val checkUser = Await.result(userService.existsId(postReaction.userId), Duration.Inf)
-    val checkReaction = Await.result(reactionService.exists(postReaction.reactionId), Duration.Inf)
+    val res = for {
+      b0 <- postService.exists(postReaction.postId)
+      b1 <- userService.existsId(postReaction.userId)
+      b2 <- reactionService.exists(postReaction.reactionId)
+    } yield b0 && b1 && b2
 
-    if (checkPost && checkUser && checkReaction)
-      Future {
+    res.map {
+      case true => {
         dao.delete(postReaction.userId, postReaction.postId)
         dao.insert(postReaction)
         EStatus.Success
       }
-    else
-      Future { EStatus.Failure }
+      case false => {
+        EStatus.Failure
+      }
+    }
   }
 
   def delete(userId: Long, postId: Long): Future[Unit] = {

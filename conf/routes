@@ -16,6 +16,15 @@ POST    /users                      controllers.UserController.create()
 PUT     /users                      controllers.UserController.update()
 DELETE  /users/:id                  controllers.UserController.delete(id: Long)
 
+# user requests
+GET     /connections                controllers.UserController.listConnections()
+GET     /requests/:id               controllers.UserController.listRequests(id: Long)
+POST    /requests                   controllers.UserController.sendRequest()
+DELETE  /requests/:id0/:id1         controllers.UserController.deleteRequest(id0: Long, id1: Long)
+GET     /friendships/:id            controllers.UserController.listFriendships(id: Long)
+POST    /friendships                controllers.UserController.acceptRequest()
+DELETE  /friendships/:id0/:id1      controllers.UserController.deleteFriendship(id0: Long, id1: Long)
+
 # post
 GET     /posts                      controllers.PostController.list()
 GET     /posts/:id                  controllers.PostController.get(id: Long)

@@ -1,6 +1,7 @@
 package controllers
 
 import forms.{BefriendsForm, UserForm}
+import models.Befriends
 import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.I18nSupport
@@ -60,10 +61,28 @@ class UserController @Inject()(userService: UserService, befriendsService: Befri
       .map(_ => Ok(Json.obj("status" -> "User deleted!")))
   }
 
+  def listConnections(): Action[AnyContent] = Action.async { implicit request =>
+    befriendsService
+      .all()
+      .map(befriendsObjects => Ok(Json.toJson(befriendsObjects)))
+  }
+
+  def listRequests(userId: Long): Action[AnyContent] = Action.async { implicit request =>
+    befriendsService
+      .getRequestsByUserId(userId)
+      .map(befriendsObjects => Ok(Json.toJson(befriendsObjects)))
+  }
+
+  def listFriendships(userId: Long): Action[AnyContent] = Action.async { implicit request =>
+    befriendsService
+      .getFriendshipsByUserId(userId)
+      .map(befriendsObjects => Ok(Json.toJson(befriendsObjects)))
+  }
+
   def sendRequest: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(BefriendsForm.create, "create failed") { befriends =>
       befriendsService.request(befriends).map {
-        case EStatus.Success => Created(Json.toJson(befriends))
+        case EStatus.Success => Created(Json.toJson(Befriends(befriends.userId0, befriends.userId1, 1)))    // quick hack
         case EStatus.Failure => BadRequest(OBJECT_NOT_CREATED_ERROR)
       }
     }
@@ -72,7 +91,7 @@ class UserController @Inject()(userService: UserService, befriendsService: Befri
   def acceptRequest: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(BefriendsForm.create, "create failed") { befriends =>
       befriendsService.accept(befriends).map {
-        case EStatus.Success => Created(Json.toJson(befriends))
+        case EStatus.Success => Created(Json.toJson(Befriends(befriends.userId0, befriends.userId1, 2)))    // quick hack
         case EStatus.Failure => BadRequest(OBJECT_NOT_CREATED_ERROR)
       }
     }
@@ -80,8 +99,14 @@ class UserController @Inject()(userService: UserService, befriendsService: Befri
 
   def deleteRequest(userId0: Long, userId1: Long): Action[AnyContent] = Action.async {
     befriendsService
-      .delete(userId0, userId1)
+      .deleteRequest(userId0, userId1)
       .map(_ => Ok(Json.obj("status" -> "Friend request deleted!")))
+  }
+
+  def deleteFriendship(userId0: Long, userId1: Long): Action[AnyContent] = Action.async {
+    befriendsService
+      .deleteFriendship(userId0, userId1)
+      .map(_ => Ok(Json.obj("status" -> "Friendship deleted!")))
   }
 
   private def withFormErrorHandling[A](form: Form[A], onFailureMessage: String)

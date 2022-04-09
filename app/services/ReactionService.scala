@@ -1,6 +1,6 @@
 package services
 
-import dao.{PostReactionDao, ReactionDao}
+import dao.ReactionDao
 import models.Reaction
 
 import javax.inject.Inject
