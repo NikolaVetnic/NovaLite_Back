@@ -12,7 +12,11 @@ import javax.inject._
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()(cc: ControllerComponents, authService: AuthService, userDao: UserDao, authAction: AuthAction) extends AbstractController(cc) {
+class HomeController @Inject()(
+  cc: ControllerComponents,
+  userDao: UserDao,
+  authAction: AuthAction,
+  authService: AuthService) extends AbstractController(cc) {
 
   /**
    * Create an Action to render an HTML page.
@@ -25,8 +29,9 @@ class HomeController @Inject()(cc: ControllerComponents, authService: AuthServic
     Ok(views.html.index())
   }
 
-  def test() = authAction { implicit request: Request[AnyContent] =>
-    Ok("views.html.index()")
+  def test() = authAction { implicit request =>
+    // FIXME: this is not done as per instructions but it works
+    Ok("Logged In : " + request.user.username)
   }
 
   def login(username: String, pass: String) = Action { implicit request: Request[AnyContent] =>

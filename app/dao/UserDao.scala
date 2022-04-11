@@ -31,8 +31,10 @@ class UserDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
   def getByUsername(username: String): Future[Option[User]] =
     db.run(users.filter(_.username === username).result.headOption)
 
-  def getByUsername2(username: String): Option[User] =
+  def getByUsername2(username: String): Option[User] = {
+    // FIXME: this is a quick and dirty fix, needs concurrency
     Await.result(db.run(users.filter(_.username === username).result.headOption), Duration.Inf)
+  }
 
   def insert(user: User): Future[String] =
     dbConfig.db.run(users += user).map(res => "User successfully added").recover {

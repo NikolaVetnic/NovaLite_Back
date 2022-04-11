@@ -1,8 +1,6 @@
 package controllers
 
 import forms.{PostDtoForm, PostForm}
-
-import javax.inject.Inject
 import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.I18nSupport
@@ -13,6 +11,7 @@ import utils.EStatus
 import utils.ErrorMsg.UPDATED_OBJECT_NOT_FOUND_ERROR
 
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
