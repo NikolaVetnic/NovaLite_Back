@@ -24,5 +24,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "5.0.0",
   "com.typesafe.play" %% "play-slick-evolutions" % "5.0.0",
 
-  "org.playframework.anorm" %% "anorm" % "2.6.10"
+  "org.playframework.anorm" %% "anorm" % "2.6.10",
+
+  "com.pauldijou" %% "jwt-play" % "5.0.0",
+  "com.pauldijou" %% "jwt-core" % "5.0.0",
+  "com.auth0" % "jwks-rsa" % "0.6.1"
 )
