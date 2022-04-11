@@ -1,5 +1,7 @@
 package auth
 
+import models.User
+
 import javax.inject.Inject
 import pdi.jwt._
 import play.api.http.HeaderNames
@@ -11,6 +13,7 @@ import scala.util.{Failure, Success}
 // A custom request type to hold our JWT claims, we can pass these on to the
 // handling action
 case class UserRequest[A](jwt: JwtClaim, token: String, request: Request[A]) extends WrappedRequest[A](request)
+//case class UserRequest[A](user: User, token: String, request: Request[A]) extends WrappedRequest[A](request)
 
 class AuthAction @Inject()(bodyParser: BodyParsers.Default, authService: AuthService)(implicit ec: ExecutionContext)
   extends ActionBuilder[UserRequest, AnyContent] {
@@ -26,14 +29,14 @@ class AuthAction @Inject()(bodyParser: BodyParsers.Default, authService: AuthSer
   override def invokeBlock[A](request: Request[A], block: UserRequest[A] => Future[Result]): Future[Result] =
     extractBearerToken(request) map { token =>
       authService.validateJwt(token) match {
-        case Success(claim) => block(UserRequest(claim, token, request))          // token was valid - proceed!
-        case Failure(t) => Future.successful(Results.Unauthorized(t.getMessage))  // token was invalid - return 401
+        case Success(claim) => println("SuccessSuccess"); block(UserRequest(claim, token, request))          // token was valid - proceed!
+        case Failure(t) => println("FailureFailure"); Future.successful(Results.Unauthorized(t.getMessage))  // token was invalid - return 401
       }
     } getOrElse Future.successful(Results.Unauthorized)                           // no token was sent - return 401
 
   // Helper for extracting the token value
   private def extractBearerToken[A](request: Request[A]): Option[String] =
     request.headers.get(HeaderNames.AUTHORIZATION) collect {
-      case headerTokenRegex(token) => token
+      case headerTokenRegex(token) => println("BearerToken : " + token); token
     }
 }
