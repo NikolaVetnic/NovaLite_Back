@@ -18,8 +18,16 @@ class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: Executi
     dao.existsUsername(username)
   }
 
+  def isValidLogin(username: String, password: String): Future[Boolean] = {
+    dao.isValidLogin(username, password)
+  }
+
   def get(id: Long): Future[Option[User]] = {
     dao.get(id)
+  }
+
+  def getByUsername(username: String): Future[Option[User]] = {
+    dao.getByUsername(username)
   }
 
   def getAll(): Future[Seq[User]] = {
