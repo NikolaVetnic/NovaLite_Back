@@ -30,6 +30,11 @@ class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: Executi
     dao.getByUsername(username)
   }
 
+  def getByUsername2(username: String): Option[User] = {
+    // FIXME: this is a quick and dirty fix, needs concurrency
+    dao.getByUsername2(username)
+  }
+
   def getAll(): Future[Seq[User]] = {
     dao.all()
   }

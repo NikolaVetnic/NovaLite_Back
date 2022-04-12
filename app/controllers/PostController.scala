@@ -1,5 +1,6 @@
 package controllers
 
+import auth.AuthAction
 import forms.{PostDtoForm, PostForm}
 import play.api.Logger
 import play.api.data.Form
@@ -16,12 +17,13 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class PostController @Inject()(postService: PostService)
+class PostController @Inject()(postService: PostService, authAction: AuthAction)
                               (implicit ec: ExecutionContext) extends InjectedController with I18nSupport {
 
   lazy val logger: Logger = Logger(getClass)
 
   def create: Action[AnyContent] = Action.async { implicit request =>
+    // TODO: input user ID not from URL but from currentUser
     withFormErrorHandling(PostDtoForm.create, "create failed") { postDto =>
       postService.create(postDto).map {
         case EStatus.Success => {
@@ -41,6 +43,7 @@ class PostController @Inject()(postService: PostService)
   }
 
   def update: Action[AnyContent] = Action.async { implicit request =>
+    // TODO: update only if post by currentUser
     withFormErrorHandling(PostForm.create, "update failed") { post =>
       postService.update(post).map {
         case EStatus.Success => Ok(Json.toJson(post))
@@ -49,25 +52,27 @@ class PostController @Inject()(postService: PostService)
     }
   }
 
-  def list: Action[AnyContent] = Action.async { implicit request =>
+  def listAll: Action[AnyContent] = Action.async { implicit request =>
     postService
       .getAll()
       .map(posts => Ok(Json.toJson(posts)))
   }
 
-  def listByOwnerId(ownerId: Long): Action[AnyContent] = Action.async { implicit request =>
+  def list(): Action[AnyContent] = authAction.async { implicit request =>
     postService
-      .getByOwnerId(ownerId)
+      .getByOwnerId(request.user.id.get)
       .map(posts => Ok(Json.toJson(posts)))
   }
 
   def get(id: Long): Action[AnyContent] = Action.async { implicit request =>
+    // TODO: check only posts by currentUser
     postService
       .get(id)
       .map(maybePost => Ok(Json.toJson(maybePost)))
   }
 
   def delete(id: Long): Action[AnyContent] = Action.async {
+    // TODO: delete only if post by currentUser
     postService
       .delete(id)
       .map(_ => Ok(Json.obj("status" -> "Post deleted!")))
