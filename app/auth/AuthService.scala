@@ -27,8 +27,8 @@ class AuthService @Inject()(userDao: UserDao) {
 
 
   def generateToken(username: String): String = {
-
-    val user = userDao.getByUsername2(username).get
+    // FIXME: concurrency needed
+    val user = Await.result(userDao.getByUsername(username), Duration.Inf).get
 
     val claim = JwtClaim(
       issuer = Some(issuedBy),
@@ -52,7 +52,8 @@ class AuthService @Inject()(userDao: UserDao) {
   def isTokenValid(token: String) = Jwt.isValid(token, secretKey, Seq(alg))
 
 
-  def getUserFromJwt(token: String) = {                                   // FIXME: this should probably be concurrent
+  def getUserFromJwt(token: String) = {
+    // FIXME: concurrency needed
     val id = userIdRegex.findFirstMatchIn(decodeElements(splitToken(token)).get._2.toString).get.group("id").toLong
     Await.result(userDao.get(id), Duration.Inf).get
   }

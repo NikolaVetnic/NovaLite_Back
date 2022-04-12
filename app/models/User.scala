@@ -13,3 +13,12 @@ object User {
   // provides implicit json mapping
   implicit val format: OFormat[User] = Json.format[User]
 }
+
+case class UserDto(firstName: String, lastName: String, imgUrl: String)
+
+object UserDto {
+
+  def tupled = (User.apply _).tupled
+
+  implicit val format: OFormat[UserDto] = Json.format[UserDto]
+}

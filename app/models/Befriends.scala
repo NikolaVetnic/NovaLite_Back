@@ -10,3 +10,12 @@ object Befriends {
 
   implicit val format: OFormat[Befriends] = Json.format[Befriends]
 }
+
+case class BefriendsDto(userId1: Long)
+
+object BefriendsDto {
+
+  def tupled = (Befriends.apply _).tupled
+
+  implicit val format: OFormat[BefriendsDto] = Json.format[BefriendsDto]
+}

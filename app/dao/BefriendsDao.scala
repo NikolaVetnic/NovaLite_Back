@@ -9,51 +9,84 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class BefriendsDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
 
+
   import profile.api._
+
 
   private val befriendsObjects = TableQuery[BefriendsTable]
 
-  def exists(userId0: Long, userId1: Long) : Future[Boolean] =
-    db.run(befriendsObjects.filter(_.userId0 === userId0).filter(_.userId1 === userId1).exists.result)
+
+  def exists(id0: Long, id1: Long) : Future[Boolean] =
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+    }).exists.result)
+
+
+  def existsRequest(id0: Long, id1: Long): Future[Boolean] =
+    existsConnection(id0, id1, 1)
+
+
+  def existsFriendship(id0: Long, id1: Long): Future[Boolean] =
+    existsConnection(id0, id1, 2)
+
+
+  def existsConnection(id0: Long, id1: Long, status: Int): Future[Boolean] =
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+    }).filter(_.status === status).exists.result)
+
 
   def all() : Future[Seq[Befriends]] =
     db.run(befriendsObjects.result)
 
-  def get(userId0: Long, userId1: Long) : Future[Option[Befriends]] =
-    db.run(befriendsObjects.filter(_.userId0 === userId0).filter(_.userId1 === userId1).result.headOption)
 
-  def getRequestsByUserId(userId: Long) : Future[Seq[Befriends]] =
-    getConnectionByUserId(userId, 1)
+  def get(id0: Long, id1: Long) : Future[Option[Befriends]] =
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+    }).result.headOption)
 
-  def getFriendshipsByUserId(userId: Long) : Future[Seq[Befriends]] =
-    getConnectionByUserId(userId, 2)
 
-  def getConnectionByUserId(userId: Long, status: Int) : Future[Seq[Befriends]] =
+  def getRequestsByUserId(id: Long) : Future[Seq[Befriends]] =
+    getConnectionByUserId(id, 1)
+
+
+  def getFriendshipsByUserId(id: Long) : Future[Seq[Befriends]] =
+    getConnectionByUserId(id, 2)
+
+
+  def getConnectionByUserId(id: Long, status: Int) : Future[Seq[Befriends]] =
     db.run(befriendsObjects
-      .filter(b => b.userId0 === userId || b.userId1 === userId)
+      .filter(b => b.userId0 === id || b.userId1 === id)
       .filter(_.status === status).result)
+
 
   def insert(befriends: Befriends): Future[String] =
     dbConfig.db.run(befriendsObjects += befriends).map(res => "Befriends object successfully added").recover {
       case ex: Exception => ex.getCause.getMessage
     }
 
-  def delete(userId0: Long, userId1: Long): Future[Unit] =
+
+  def delete(id0: Long, id1: Long): Future[Unit] =
     db.run(befriendsObjects
-      .filter(_.userId0 === userId0)
-      .filter(_.userId1 === userId1).delete).map(_ => ())
+      .filter(b => {
+        (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+      }).delete).map(_ => ())
 
-  def deleteRequest(userId0: Long, userId1: Long): Future[Unit] =
-    deleteConnection(userId0, userId1, 1)
 
-  def deleteFriendship(userId0: Long, userId1: Long): Future[Unit] =
-    deleteConnection(userId0, userId1, 2)
+  def deleteRequest(id0: Long, id1: Long): Future[Unit] =
+    deleteConnection(id0, id1, 1)
 
-  def deleteConnection(userId0: Long, userId1: Long, status: Int): Future[Unit] =
+
+  def deleteFriendship(id0: Long, id1: Long): Future[Unit] =
+    deleteConnection(id0, id1, 2)
+
+
+  def deleteConnection(id0: Long, id1: Long, status: Int): Future[Unit] =
     db.run(befriendsObjects
-      .filter(_.userId0 === userId0)
-      .filter(_.userId1 === userId1)
-      .filter(_.status === status).delete).map(_ => ())
+      .filter(b => {
+        (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+      }).filter(_.status === status).delete).map(_ => ())
+
 
   private class BefriendsTable(tag: Tag) extends Table[Befriends](tag, "befriends") {
 

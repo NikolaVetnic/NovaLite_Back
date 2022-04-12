@@ -20,14 +20,19 @@ PUT     /users                      controllers.UserController.updateSelf()
 DELETE  /users/:id                  controllers.UserController.delete(id: Long)
 DELETE  /user                       controllers.UserController.deleteSelf()
 
-# user requests
+# user connections
 GET     /connections                controllers.UserController.listConnections()
+DELETE  /connections/:id0/:id1      controllers.UserController.deleteConnection(id0: Long, id1: Long)
+
+# friend requests
 GET     /requests                   controllers.UserController.listRequests()
 POST    /requests                   controllers.UserController.sendRequest()
-DELETE  /requests/:id0/:id1         controllers.UserController.deleteRequest(id0: Long, id1: Long)
+DELETE  /requests/:id1              controllers.UserController.deleteRequest(id1: Long)
+
+# friendships
 GET     /friendships                controllers.UserController.listFriendships()
 POST    /friendships                controllers.UserController.acceptRequest()
-DELETE  /friendships/:id0/:id1      controllers.UserController.deleteFriendship(id0: Long, id1: Long)
+DELETE  /friendships/:id1           controllers.UserController.deleteFriendship(id1: Long)
 
 # post
 GET     /posts/all                  controllers.PostController.listAll()

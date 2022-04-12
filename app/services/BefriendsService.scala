@@ -12,37 +12,35 @@ class BefriendsService @Inject()(
   dao: BefriendsDao,
   userService: UserService)(implicit ex: ExecutionContext) {
 
-  def exists(befriends: Befriends): Future[Boolean] = {
-    dao.exists(befriends.userId0, befriends.userId1)
-  }
 
-  def all(): Future[Seq[Befriends]] = {
-    dao.all()
-  }
+  def exists(befriends: Befriends): Future[Boolean] = dao.exists(befriends.userId0, befriends.userId1)
 
-  def get(userId0: Long, userId1: Long): Future[Option[Befriends]] = {
-    dao.get(userId0, userId1)
-  }
 
-  def getRequestsByUserId(userId: Long): Future[Seq[Befriends]] = {
-    dao.getRequestsByUserId(userId)
-  }
+  def all(): Future[Seq[Befriends]] = dao.all()
 
-  def getFriendshipsByUserId(userId: Long): Future[Seq[Befriends]] = {
-    dao.getFriendshipsByUserId(userId)
-  }
+
+  def get(userId0: Long, userId1: Long): Future[Option[Befriends]] = dao.get(userId0, userId1)
+
+
+  def getRequestsByUserId(userId: Long): Future[Seq[Befriends]] = dao.getRequestsByUserId(userId)
+
+
+  def getFriendshipsByUserId(userId: Long): Future[Seq[Befriends]] = dao.getFriendshipsByUserId(userId)
+
 
   def request(befriends: Befriends): Future[EStatus] = {
 
     val res = for {
-      b0 <- userService.existsId(befriends.userId0)
-      b1 <- userService.existsId(befriends.userId1)
-      b2 <- dao.exists(befriends.userId0, befriends.userId1)
-    } yield b0 && b1 && !b2
+      b0 <- Future { befriends.userId0 != befriends.userId1 }             // user0 and user1 are different users
+      b1 <- userService.existsId(befriends.userId0)                       // user0 exists
+      b2 <- userService.existsId(befriends.userId1)                       // user1 exists
+      b3 <- dao.existsRequest(befriends.userId0, befriends.userId1)       // no requests between the two
+      b4 <- dao.existsFriendship(befriends.userId1, befriends.userId0)    // no friendship between the two
+    } yield b0 && b1 && b2 && !b3 && !b4
 
     res.map {
       case true => {
-        dao.insert(Befriends(befriends.userId0, befriends.userId1, 1))    // quick hack
+        dao.insert(befriends)
         EStatus.Success
       }
       case false => {
@@ -50,30 +48,72 @@ class BefriendsService @Inject()(
       }
     }
   }
+
 
   def accept(befriends: Befriends): Future[EStatus] = {
 
-    dao.exists(befriends.userId0, befriends.userId1).map {
-      case true => {
-        delete(befriends.userId0, befriends.userId1)
-        dao.insert(Befriends(befriends.userId0, befriends.userId1, 2))    // quick hack
+    val res = for {
+      b0 <- Future { befriends.userId0 != befriends.userId1 }             // user0 and user1 are different users
+      b1 <- userService.existsId(befriends.userId0)                       // user0 exists
+      b2 <- userService.existsId(befriends.userId1)                       // user1 exists
+      b3 <- dao.existsRequest(befriends.userId0, befriends.userId1)       // there is a pending request between the two
+      b4 <- dao.existsFriendship(befriends.userId1, befriends.userId0)    // no friendship between the two
+    } yield b0 && b1 && b2 && b3 && !b4
+
+    res.map {
+      case true =>
+
+        for {
+          _ <- delete(befriends.userId0, befriends.userId1)
+          r <- dao.insert(befriends)
+        } yield r
+
         EStatus.Success
-      }
-      case false => {
+
+      case false =>
         EStatus.Failure
-      }
     }
   }
 
-  def delete(userId0: Long, userId1: Long): Future[Unit] = {
-    dao.delete(userId0, userId1)
+
+  def deleteRequest(id0: Long, id1: Long): Future[EStatus] = {
+
+    val res = for {
+      b <- dao.existsRequest(id0, id1)
+      _ <- dao.deleteRequest(id0, id1)
+    } yield b
+
+    res.map {
+      case true => EStatus.Success
+      case false => EStatus.Failure
+    }
   }
 
-  def deleteRequest(userId0: Long, userId1: Long): Future[Unit] = {
-    dao.deleteRequest(userId0, userId1)
+
+  def deleteFriendship(id0: Long, id1: Long): Future[EStatus] = {
+
+    val res = for {
+      b <- dao.existsFriendship(id0, id1)
+      _ <- dao.deleteFriendship(id0, id1)
+    } yield b
+
+    res.map {
+      case true => EStatus.Success
+      case false => EStatus.Failure
+    }
   }
 
-  def deleteFriendship(userId0: Long, userId1: Long): Future[Unit] = {
-    dao.deleteFriendship(userId0, userId1)
+
+  def delete(id0: Long, id1: Long): Future[EStatus] = {
+
+    val res = for {
+      b <- dao.exists(id0, id1)
+      _ <- dao.delete(id0, id1)
+    } yield b
+
+    res.map {
+      case true => EStatus.Success
+      case false => EStatus.Failure
+    }
   }
 }

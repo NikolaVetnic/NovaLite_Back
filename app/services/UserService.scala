@@ -10,41 +10,43 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: ExecutionContext) {
 
+
   def existsId(id: Long): Future[Boolean] = {
     dao.existsId(id)
   }
+
 
   def existsUsername(username: String): Future[Boolean] = {
     dao.existsUsername(username)
   }
 
+
   def isValidLogin(username: String, password: String): Future[Boolean] = {
     dao.isValidLogin(username, password)
   }
+
 
   def get(id: Long): Future[Option[User]] = {
     dao.get(id)
   }
 
+
   def getByUsername(username: String): Future[Option[User]] = {
     dao.getByUsername(username)
   }
 
-  def getByUsername2(username: String): Option[User] = {
-    // FIXME: this is a quick and dirty fix, needs concurrency
-    dao.getByUsername2(username)
-  }
 
   def getAll(): Future[Seq[User]] = {
     dao.all()
   }
+
 
   def create(user: User): Future[EStatus] = {
 
     val res = for {
       b0 <- dao.existsUsername(user.username)
       b1 <- roleDao.exists(user.roleId)
-    } yield b0 && b1
+    } yield !b0 && b1
 
     res.map {
       case true => {
@@ -57,6 +59,7 @@ class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: Executi
     }
   }
 
+
   def update(user: User): Future[EStatus] = {
     existsId(user.id.get).map {
       case true =>
@@ -67,7 +70,17 @@ class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: Executi
     }
   }
 
-  def delete(id: Long): Future[Unit] = {
-    dao.delete(id)
+
+  def delete(id: Long): Future[EStatus] = {
+
+    val res = for {
+      b <- dao.existsId(id)
+      _ <- dao.delete(id)
+    } yield b
+
+    res.map {
+      case true => EStatus.Success
+      case false => EStatus.Failure
+    }
   }
 }

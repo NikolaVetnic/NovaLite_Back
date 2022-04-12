@@ -8,26 +8,35 @@ import java.sql.Date
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
+class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+                       (implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
+
 
   import profile.api._
 
+
   private val posts = TableQuery[PostTable]
+
 
   def exists(id : Long) : Future[Boolean] =
     db.run(posts.filter(i => i.id === id).exists.result)
 
+
   def all(): Future[Seq[Post]] =
     db.run(posts.result)
+
 
   def get(id: Long): Future[Option[Post]] =
     db.run(posts.filter(_.id === id).sortBy(_.id).result.headOption)
 
+
   def getByOwnerId(ownerId: Long): Future[Seq[Post]] =
     db.run(posts.filter(_.ownerId === ownerId).result)
 
+
   def getByTitleContentAndOwnerId(title: String, content: String, ownerId: Long): Future[Seq[Post]] =
     db.run(posts.filter(_.title === title).filter(_.content === content).filter(_.ownerId === ownerId).sortBy(_.id).result)
+
 
   def insert(postDto: PostDto): Future[String] = dbConfig.db.run(
     posts += new Post(null, postDto.title, postDto.content, new Date(System.currentTimeMillis()), 1))
@@ -35,12 +44,15 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
     case ex: Exception => ex.getCause.getMessage
   }
 
+
   def update(post: Post): Future[Post] = db.run(
     posts.filter(_.id === post.id)
       .update(post.copy(post.id, post.title, post.content, new Date(System.currentTimeMillis()), post.ownerId)))
     .map(_ => post)
 
+
   def delete(id: Long): Future[Unit] = db.run(posts.filter(_.id === id).delete).map(_ => ())
+
 
   private class PostTable(tag: Tag) extends Table[Post](tag, "post") {
 

@@ -24,6 +24,8 @@ class AuthAction @Inject()(bodyParser: BodyParsers.Default, authService: AuthSer
   // A regex for parsing the Authorization header value
   private val headerTokenRegex = """Bearer (.+?)""".r
 
+  // TODO:concurrency issues - proveriti suvda
+
 
   // Called when a request is invoked. We should validate the bearer token here and allow the request to proceed if it is valid.
   override def invokeBlock[A](request: Request[A], block: UserRequest[A] => Future[Result]): Future[Result] =

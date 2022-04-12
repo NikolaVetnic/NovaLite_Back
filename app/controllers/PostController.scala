@@ -64,11 +64,11 @@ class PostController @Inject()(postService: PostService, authAction: AuthAction)
       .map(posts => Ok(Json.toJson(posts)))
   }
 
-  def get(id: Long): Action[AnyContent] = Action.async { implicit request =>
+  def get(id: Long): Action[AnyContent] = authAction.async { implicit request =>
     // TODO: check only posts by currentUser
     postService
       .get(id)
-      .map(maybePost => Ok(Json.toJson(maybePost)))
+      .map(maybePost => if (maybePost.get.ownerId == request.user.id.get) Ok(Json.toJson(maybePost)) else BadRequest("error"))
   }
 
   def delete(id: Long): Action[AnyContent] = Action.async {
