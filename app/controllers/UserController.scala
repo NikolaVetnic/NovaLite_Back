@@ -12,8 +12,10 @@ import services.{BefriendsService, UserService}
 import utils.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+
 
 class UserController @Inject()(
   userService: UserService,
@@ -28,23 +30,26 @@ class UserController @Inject()(
   def login(username: String, password: String) = Action.async { implicit request: Request[AnyContent] =>
     userService.isValidLogin(username, password).map {
       case true =>
-        Ok(Json.obj("currentUser" -> username, "jwt" -> authService.generateToken(username)))
+        Ok(Json.obj("user" -> username, "jwt" -> authService.generateToken(username)))
       case false =>
-        Unauthorized(Json.obj("currentUser" -> "none"))
+        Unauthorized(Json.obj("user" -> "none"))
     }
   }
 
 
   def getSelf() = authAction { implicit request =>
-    Ok(Json.obj("currentUser" -> request.user))
+    Ok(Json.obj("user" -> request.user))
   }
 
 
   def create: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(UserForm.create, "create failed") { user =>
       userService.create(user).map {
-        case EStatus.Success => Created(Json.toJson(user))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "User not persisted."))
+        case EStatus.Success =>
+          // FIXME: concurrency?
+          Created(Json.obj("user" -> Await.result(userService.getAll(), Duration.Inf).sortBy(_.id).last))
+        case EStatus.Failure =>
+          BadRequest(Json.obj("status" -> "User not persisted."))
       }
     }
   }
@@ -58,8 +63,10 @@ class UserController @Inject()(
         request.user.password, userDto.imgUrl, request.user.roleId)
 
       userService.update(updatedUser).map {
-        case EStatus.Success => Ok(Json.toJson(updatedUser))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "User not found."))
+        case EStatus.Success =>
+          Ok(Json.obj("user" -> (updatedUser)))
+        case EStatus.Failure =>
+          BadRequest(Json.obj("status" -> "User not found."))
       }
     }
   }
@@ -68,7 +75,7 @@ class UserController @Inject()(
   def listAll: Action[AnyContent] = Action.async { implicit request =>
     userService
       .getAll()
-      .map(users => Ok(Json.toJson(users)))
+      .map(users => Ok(Json.obj("users" -> users)))
   }
 
 
@@ -76,8 +83,8 @@ class UserController @Inject()(
     userService
       .delete(id)
       .map {
-        case EStatus.Success => Ok(Json.obj("status" -> "User deleted."))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "User not found."))
+        case EStatus.Success => Ok(Json.obj("status" -> ("User " + id + "deleted.")))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "User not found."))
       }
   }
 
@@ -86,8 +93,8 @@ class UserController @Inject()(
     userService
       .delete(request.user.id.get)
       .map {
-        case EStatus.Success => Ok(Json.obj("status" -> "User deleted."))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "User not found."))
+        case EStatus.Success => Ok(Json.obj("status" -> ("User " + request.user.id.get + "deleted.")))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "User not found."))
       }
   }
 
@@ -119,8 +126,8 @@ class UserController @Inject()(
       val befriendsObject = Befriends(request.user.id.get, befriendsDto.userId1, 1)
 
       befriendsService.request(befriendsObject).map {
-        case EStatus.Success => Created(Json.toJson(befriendsObject))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "Friend request not persisted."))
+        case EStatus.Success => Created(Json.obj("request" -> befriendsObject))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "Friend request not persisted."))
       }
     }
   }
@@ -132,8 +139,8 @@ class UserController @Inject()(
       val befriendsObject = Befriends(request.user.id.get, befriendsDto.userId1, 2)
 
       befriendsService.accept(befriendsObject).map {
-        case EStatus.Success => Created(Json.toJson(befriendsObject))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "Friendship not persisted."))
+        case EStatus.Success => Created(Json.obj("friendship" -> befriendsObject))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "Friendship not persisted."))
       }
     }
   }
@@ -141,8 +148,8 @@ class UserController @Inject()(
 
   def deleteConnection(id0: Long, id1: Long): Action[AnyContent] = Action.async {
     befriendsService.delete(id0, id1).map {
-      case EStatus.Success => Ok(Json.obj("status" -> "Connection deleted."))
-      case EStatus.Failure => BadRequest(Json.obj("error" -> "Connection not found."))
+      case EStatus.Success => Ok(Json.obj("status" -> ("Connection " + id0 + "-" + id1 + " deleted.")))
+      case EStatus.Failure => BadRequest(Json.obj("status" -> "Connection not found."))
     }
   }
 
@@ -151,8 +158,8 @@ class UserController @Inject()(
     befriendsService
       .deleteRequest(request.user.id.get, id1)
       .map {
-        case EStatus.Success => Ok(Json.obj("status" -> "Friend request deleted."))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "Friend request not found."))
+        case EStatus.Success => Ok(Json.obj("status" -> ("Friend request " + request.user.id.get + "-" + id1 + " deleted.")))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "Friend request not found."))
       }
   }
 
@@ -161,8 +168,8 @@ class UserController @Inject()(
     befriendsService
       .deleteFriendship(request.user.id.get, id1)
       .map {
-        case EStatus.Success => Ok(Json.obj("status" -> "Friendship deleted."))
-        case EStatus.Failure => BadRequest(Json.obj("error" -> "Friendship not found."))
+        case EStatus.Success => Ok(Json.obj("status" -> ("Friendship " + request.user.id.get + "-" + id1 + " deleted.")))
+        case EStatus.Failure => BadRequest(Json.obj("status" -> "Friendship not found."))
       }
   }
 

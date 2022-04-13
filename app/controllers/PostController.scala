@@ -1,7 +1,8 @@
 package controllers
 
 import auth.AuthAction
-import forms.{PostDtoForm, PostForm}
+import forms.{PostInputDtoForm, PostUpdateDtoForm}
+import models.{Post, PostInsertDto}
 import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.I18nSupport
@@ -9,74 +10,95 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import services.PostService
 import utils.EStatus
-import utils.ErrorMsg.UPDATED_OBJECT_NOT_FOUND_ERROR
 
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
+
 class PostController @Inject()(postService: PostService, authAction: AuthAction)
                               (implicit ec: ExecutionContext) extends InjectedController with I18nSupport {
 
+
   lazy val logger: Logger = Logger(getClass)
 
-  def create: Action[AnyContent] = Action.async { implicit request =>
-    // TODO: input user ID not from URL but from currentUser
-    withFormErrorHandling(PostDtoForm.create, "create failed") { postDto =>
-      postService.create(postDto).map {
-        case EStatus.Success => {
 
-          val allPosts = Await.result(
-            postService.getByTitleContentAndOwnerId(postDto.title, postDto.content, postDto.ownerId),
-            Duration(10, TimeUnit.SECONDS))
+  def create: Action[AnyContent] = authAction.async { implicit request =>
+    withFormErrorHandling(PostInputDtoForm.create, "create failed") { postDto =>
 
-          if (allPosts == null)
-            BadRequest(UPDATED_OBJECT_NOT_FOUND_ERROR)
-          else
-            Ok(Json.toJson(allPosts(allPosts.size - 1)))
-        }
-        case EStatus.Failure => BadRequest("User with ID " + postDto.ownerId + " not found.")
+      val postInsertDtoObject = PostInsertDto(postDto.title, postDto.content, request.user.id.get)
+
+      postService.create(postInsertDtoObject).map {
+        case EStatus.Success =>
+          // FIXME: concurrency?
+          Created(Json.obj("post" -> (Await.result(postService.getAll(), Duration.Inf).sortBy(_.id).last)))
+        case EStatus.Failure =>
+          BadRequest(Json.obj("status" -> "Post not persisted."))
       }
     }
   }
 
-  def update: Action[AnyContent] = Action.async { implicit request =>
-    // TODO: update only if post by currentUser
-    withFormErrorHandling(PostForm.create, "update failed") { post =>
+
+  def update: Action[AnyContent] = authAction.async { implicit request =>
+    withFormErrorHandling(PostUpdateDtoForm.create, "update failed") { postUpdateDto =>
+
+      val post = Post(postUpdateDto.id, postUpdateDto.title, postUpdateDto.content, null, request.user.id.get)
+
       postService.update(post).map {
-        case EStatus.Success => Ok(Json.toJson(post))
-        case EStatus.Failure => BadRequest("Post with ID " + post.id + " not found.")
+        case EStatus.Success =>
+          Ok(Json.obj("post" -> Await.result(postService.get(post.id.get), Duration.Inf).get))
+        case EStatus.Failure =>
+          BadRequest(Json.obj("status" -> ("Post " + post.id.get + " not found or not owned by User " + post.ownerId + ".")))
       }
     }
   }
+
 
   def listAll: Action[AnyContent] = Action.async { implicit request =>
     postService
       .getAll()
-      .map(posts => Ok(Json.toJson(posts)))
+      .map(posts => Ok(Json.obj("posts" -> posts)))
   }
+
 
   def list(): Action[AnyContent] = authAction.async { implicit request =>
     postService
       .getByOwnerId(request.user.id.get)
-      .map(posts => Ok(Json.toJson(posts)))
+      .map(posts => Ok(Json.obj("posts" -> posts)))
   }
+
 
   def get(id: Long): Action[AnyContent] = authAction.async { implicit request =>
-    // TODO: check only posts by currentUser
     postService
-      .get(id)
-      .map(maybePost => if (maybePost.get.ownerId == request.user.id.get) Ok(Json.toJson(maybePost)) else BadRequest("error"))
+      .getByIdAndOwnerId(id, request.user.id.get)
+      .map(post =>
+        if (!post.isEmpty)
+          Ok(Json.obj("post" -> post))
+        else
+          BadRequest(Json.obj("status" -> ("Post " + id + " not found or not owned by User " + request.user.id.get + "."))))
   }
 
-  def delete(id: Long): Action[AnyContent] = Action.async {
-    // TODO: delete only if post by currentUser
-    postService
-      .delete(id)
-      .map(_ => Ok(Json.obj("status" -> "Post deleted!")))
+
+  def delete(id: Long): Action[AnyContent] = Action.async { implicit request =>
+    postService.delete(id).map {
+      case EStatus.Success =>
+        Ok(Json.obj("status" -> ("Post " + id + " deleted!")))
+      case EStatus.Failure =>
+        BadRequest(Json.obj("status" -> ("Post " + id + " not found.")))
+    }
   }
+
+
+  def deleteOwnPost(id: Long): Action[AnyContent] = authAction.async { implicit request =>
+    postService.deleteByIdAndOwnerId(id, request.user.id.get).map {
+        case EStatus.Success =>
+          Ok(Json.obj("status" -> ("Post " + id + " deleted!")))
+        case EStatus.Failure =>
+          BadRequest(Json.obj("status" -> ("Post " + id + " not found or not owned by User " + request.user.id.get + ".")))
+      }
+  }
+
 
   private def withFormErrorHandling[A](form: Form[A], onFailureMessage: String)
                                       (block: A => Future[Result])

@@ -8,27 +8,38 @@ import utils.EStatus.EStatus
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+
 class PostReactionService @Inject()(
   dao: PostReactionDao,
   userService: UserService,
   postService: PostService,
   reactionService: ReactionService)(implicit ex: ExecutionContext) {
 
+
   def exists(postReaction: PostReaction): Future[Boolean] = {
     dao.exists(postReaction.userId, postReaction.postId)
   }
+
 
   def getAll(): Future[Seq[PostReaction]] = {
     dao.all()
   }
 
-  def getByPostId(postId: Long): Future[Seq[PostReaction]] = {
-    dao.getByPostId(postId)
+
+  def getByUserId(id: Long): Future[Seq[PostReaction]] = {
+    dao.getByUserId(id)
   }
+
+
+  def getByPostId(id: Long): Future[Seq[PostReaction]] = {
+    dao.getByPostId(id)
+  }
+
 
   def getByUserIdAndPostId(userId: Long, postId: Long): Future[Option[PostReaction]] = {
     dao.getByUserIdAndPostId(userId, postId)
   }
+
 
   def create(postReaction: PostReaction): Future[EStatus] = {
 
@@ -50,7 +61,14 @@ class PostReactionService @Inject()(
     }
   }
 
-  def delete(userId: Long, postId: Long): Future[Unit] = {
-    dao.delete(userId, postId)
+
+  def delete(userId: Long, postId: Long): Future[EStatus] = {
+    dao.exists(userId, postId).map {
+      case true =>
+        dao.delete(userId, postId)
+        EStatus.Success
+      case false =>
+        EStatus.Failure
+    }
   }
 }

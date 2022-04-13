@@ -1,6 +1,6 @@
 package forms
 
-import models.{Post, PostDto}
+import models.{Post, PostInputDto, PostInsertDto, PostUpdateDto}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, nonEmptyText, _}
 
@@ -16,12 +16,31 @@ object PostForm {
   )
 }
 
-object PostDtoForm {
-  def create: Form[PostDto] = Form(
+object PostInsertDtoForm {
+  def create: Form[PostInsertDto] = Form(
     mapping(
       "title" -> nonEmptyText,
       "content" -> nonEmptyText,
       "ownerId" -> longNumber
-    )(PostDto.apply)(PostDto.unapply)
+    )(PostInsertDto.apply)(PostInsertDto.unapply)
+  )
+}
+
+object PostInputDtoForm {
+  def create: Form[PostInputDto] = Form(
+    mapping(
+      "title" -> nonEmptyText,
+      "content" -> nonEmptyText
+    )(PostInputDto.apply)(PostInputDto.unapply)
+  )
+}
+
+object PostUpdateDtoForm {
+  def create: Form[PostUpdateDto] = Form(
+    mapping(
+      "id" -> optional(longNumber),
+      "title" -> nonEmptyText,
+      "content" -> nonEmptyText
+    )(PostUpdateDto.apply)(PostUpdateDto.unapply)
   )
 }

@@ -25,8 +25,12 @@ class PostReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     db.run(postReactions.result)
 
 
-  def getByPostId(postId: Long) : Future[Seq[PostReaction]] =
-    db.run(postReactions.filter(_.postId === postId).result)
+  def getByPostId(id: Long) : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.postId === id).result)
+
+
+  def getByUserId(id: Long) : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.userId === id).result)
 
 
   def getByUserIdAndPostId(userId: Long, postId: Long) : Future[Option[PostReaction]] =

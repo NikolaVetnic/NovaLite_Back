@@ -1,6 +1,0 @@
-20220413
-- app.controllers.UserController : all OK
-- app.dao : all OK
-- app.forms : all OK
-- app.models : all OK
-- app.services.BefriendsService, app.services.ReactionService, app.services.RoleService, app.services.UserService : all OK
