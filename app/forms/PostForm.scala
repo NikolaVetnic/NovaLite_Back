@@ -10,7 +10,7 @@ object PostForm {
       "id" -> optional(longNumber),
       "title" -> nonEmptyText,
       "content" -> nonEmptyText,
-      "dateTime" -> sqlDate,
+      "dateTime" -> sqlTimestamp,
       "ownerId" -> longNumber
     )(Post.apply)(Post.unapply)
   )

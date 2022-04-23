@@ -6,10 +6,9 @@ import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.I18nSupport
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, InjectedController, Request, Result}
+import play.api.mvc._
 import services.PostReactionService
 import utils.EStatus
-import utils.ErrorMsg.{ID_NOT_FOUND_ERROR, RELATED_DB_ENTRY_NOT_FOUND_ERROR}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,6 +40,13 @@ class PostReactionController @Inject()(postReactionService: PostReactionService,
           BadRequest(Json.obj("status" -> ("Post " + postId + " not found or no reaction by User " + request.user.id.get + ".")))
         else
           Ok(Json.obj("postReaction" -> preact)))
+  }
+
+
+  def getLikesByPostId(postId: Long): Action[AnyContent] = authAction.async { implicit request =>
+    postReactionService
+      .getLikesByUserIdAndPostId(request.user.id.get, postId)
+      .map(preact => Ok(Json.obj("likes" -> preact)))
   }
 
 

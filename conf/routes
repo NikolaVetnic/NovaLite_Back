@@ -9,44 +9,86 @@ GET     /                           controllers.HomeController.index()
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
+
+
 # login
 GET     /login                      controllers.UserController.login(username: String, password: String)
+GET     /user/:id                   controllers.UserController.get(id: Long)
 GET     /user                       controllers.UserController.getSelf()
 
 # user
-GET     /users                      controllers.UserController.listAll()
+GET     /users                      controllers.UserController.getAll()
 POST    /users                      controllers.UserController.create()
++nocsrf
 PUT     /users                      controllers.UserController.updateSelf()
 DELETE  /users/:id                  controllers.UserController.delete(id: Long)
 DELETE  /user                       controllers.UserController.deleteSelf()
 
+
+
 # user connections
-GET     /connections                controllers.UserController.listConnections()
-DELETE  /connections/:id0/:id1      controllers.UserController.deleteConnection(id0: Long, id1: Long)
+GET     /connections                controllers.BefriendsController.getConnections()
+GET     /connections/:id            controllers.BefriendsController.getConnectionById(id: Long)
++nocsrf
+DELETE  /connections/:id0/:id1      controllers.BefriendsController.deleteConnection(id0: Long, id1: Long)
 
 # friend requests
-GET     /requests                   controllers.UserController.listRequests()
-POST    /requests                   controllers.UserController.sendRequest()
-DELETE  /requests/:id1              controllers.UserController.deleteRequest(id1: Long)
+GET     /requests                   controllers.BefriendsController.getRequests()
+GET     /requests/:id               controllers.BefriendsController.getRequestsById(id: Long)
+GET     /applicants                 controllers.BefriendsController.getApplicants()
++nocsrf
+POST    /requests                   controllers.BefriendsController.sendRequest()
++nocsrf
+DELETE  /requests/:id1              controllers.BefriendsController.deleteRequest(id1: Long)
 
 # friendships
-GET     /friendships                controllers.UserController.listFriendships()
-POST    /friendships                controllers.UserController.acceptRequest()
-DELETE  /friendships/:id1           controllers.UserController.deleteFriendship(id1: Long)
+GET     /friendships                controllers.BefriendsController.listFriendships()
+GET     /friendships/:id            controllers.BefriendsController.getFriendship(id: Long)
+GET     /friends                    controllers.BefriendsController.listFriends()
++nocsrf
+POST    /friendships                controllers.BefriendsController.acceptRequest()
+DELETE  /friendships/:id            controllers.BefriendsController.deleteFriendship(id: Long)
+
+
 
 # post
 GET     /posts/all                  controllers.PostController.listAll()
-GET     /posts/:id                  controllers.PostController.get(id: Long)
 GET     /posts                      controllers.PostController.list()
+GET     /posts/all/:id              controllers.PostController.listById(id: Long)
+GET     /posts/:id                  controllers.PostController.get(id: Long)
++nocsrf
 POST    /posts                      controllers.PostController.create()
++nocsrf
 PUT     /posts                      controllers.PostController.update()
++nocsrf
 DELETE  /posts/del/:id              controllers.PostController.delete(id: Long)
 DELETE  /posts/:id                  controllers.PostController.deleteOwnPost(id: Long)
+
+
 
 # post_reaction
 GET     /preact/all                 controllers.PostReactionController.listAll()
 GET     /preact                     controllers.PostReactionController.list()
 GET     /preact/p/:postId           controllers.PostReactionController.getByPostId(postId: Long)
+GET     /preact/likes/:postId       controllers.PostReactionController.getLikesByPostId(postId: Long)
++nocsrf
 POST    /preact                     controllers.PostReactionController.create()
++nocsrf
 DELETE  /preact/u/:userId/p/:postId controllers.PostReactionController.delete(userId: Long, postId: Long)
++nocsrf
 DELETE  /preact/p/:postId           controllers.PostReactionController.deleteOwn(postId: Long)
+
+
+
+# comments
+GET     /comments/getByPostId/:id   controllers.CommentController.getCommentsByPostId(id: Long)
++nocsrf
+POST    /comments                   controllers.CommentController.createComment()
++nocsrf
+POST    /comments/like/             controllers.CommentController.createCommentReaction()
++nocsrf
+PUT     /comments/update            controllers.CommentController.updateComment()
++nocsrf
+DELETE  /comments/del/:id           controllers.CommentController.deleteComment(id: Long)
++nocsrf
+DELETE  /comments/delete/:id        controllers.CommentController.deleteCommentReaction(id: Long)

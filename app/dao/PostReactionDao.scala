@@ -17,16 +17,26 @@ class PostReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   private val postReactions = TableQuery[PostReactionTable]
 
 
+  /**********
+   * EXISTS *
+   **********/
   def exists(userId: Long, postId: Long) : Future[Boolean] =
     db.run(postReactions.filter(_.userId === userId).filter(_.postId === postId).exists.result)
 
 
+  /*******
+   * GET *
+   *******/
   def all() : Future[Seq[PostReaction]] =
     db.run(postReactions.result)
 
 
   def getByPostId(id: Long) : Future[Seq[PostReaction]] =
     db.run(postReactions.filter(_.postId === id).result)
+
+
+  def getLikesByPostId(id: Long) : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.postId === id).filter(_.reactionId === 1.toLong).result)
 
 
   def getByUserId(id: Long) : Future[Seq[PostReaction]] =
@@ -37,12 +47,26 @@ class PostReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     db.run(postReactions.filter(_.userId === userId).filter(_.postId === postId).result.headOption)
 
 
+  def getLikesByUserId(id: Long) : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.userId === id).filter(_.reactionId === 1.toLong).result)
+
+
+  def getLikesByUserIdAndPostId(userId: Long, postId: Long) : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.userId === userId).filter(_.postId === postId).filter(_.reactionId === 1.toLong).result)
+
+
+  /********
+   * POST *
+   ********/
   def insert(postReaction: PostReaction): Future[String] =
     dbConfig.db.run(postReactions += postReaction).map(res => "Post reaction successfully added").recover {
       case ex: Exception => ex.getCause.getMessage
     }
 
 
+  /**********
+   * DELETE *
+   **********/
   def delete(userId: Long, postId: Long): Future[Unit] =
     db.run(postReactions.filter(_.userId === userId).filter(_.postId === postId).delete).map(_ => ())
 

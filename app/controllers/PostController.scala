@@ -17,11 +17,44 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
-class PostController @Inject()(postService: PostService, authAction: AuthAction)
-                              (implicit ec: ExecutionContext) extends InjectedController with I18nSupport {
+class PostController @Inject()(
+  postService: PostService,
+  authAction: AuthAction) (implicit ec: ExecutionContext) extends InjectedController with I18nSupport {
 
 
   lazy val logger: Logger = Logger(getClass)
+
+
+  def listAll: Action[AnyContent] = authAction.async { implicit request =>
+    postService
+      .getByFriendIds(request.user.id.get)
+      .map(posts => Ok(Json.obj("posts" -> posts)))
+  }
+
+
+  def list(): Action[AnyContent] = authAction.async { implicit request =>
+    postService
+      .getByOwnerId(request.user.id.get)
+      .map(posts => Ok(Json.obj("posts" -> posts)))
+  }
+
+
+  def listById(id: Long): Action[AnyContent] = authAction.async { implicit request =>
+    postService
+      .getByOwnerId(id)
+      .map(posts => Ok(Json.obj("posts" -> posts)))
+  }
+
+
+  def get(id: Long): Action[AnyContent] = authAction.async { implicit request =>
+    postService
+      .getByIdAndOwnerId(id, request.user.id.get)
+      .map(post =>
+        if (!post.isEmpty)
+          Ok(Json.obj("post" -> post))
+        else
+          BadRequest(Json.obj("status" -> ("Post " + id + " not found or not owned by User " + request.user.id.get + "."))))
+  }
 
 
   def create: Action[AnyContent] = authAction.async { implicit request =>
@@ -52,31 +85,6 @@ class PostController @Inject()(postService: PostService, authAction: AuthAction)
           BadRequest(Json.obj("status" -> ("Post " + post.id.get + " not found or not owned by User " + post.ownerId + ".")))
       }
     }
-  }
-
-
-  def listAll: Action[AnyContent] = Action.async { implicit request =>
-    postService
-      .getAll()
-      .map(posts => Ok(Json.obj("posts" -> posts)))
-  }
-
-
-  def list(): Action[AnyContent] = authAction.async { implicit request =>
-    postService
-      .getByOwnerId(request.user.id.get)
-      .map(posts => Ok(Json.obj("posts" -> posts)))
-  }
-
-
-  def get(id: Long): Action[AnyContent] = authAction.async { implicit request =>
-    postService
-      .getByIdAndOwnerId(id, request.user.id.get)
-      .map(post =>
-        if (!post.isEmpty)
-          Ok(Json.obj("post" -> post))
-        else
-          BadRequest(Json.obj("status" -> ("Post " + id + " not found or not owned by User " + request.user.id.get + "."))))
   }
 
 

@@ -4,7 +4,7 @@ import models.{Post, PostInsertDto}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.JdbcProfile
 
-import java.sql.Date
+import java.sql.Timestamp
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,6 +18,9 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   private val posts = TableQuery[PostTable]
 
 
+  /**********
+   * EXISTS *
+   **********/
   def exists(id: Long) : Future[Boolean] =
     db.run(posts.filter(i => i.id === id).exists.result)
 
@@ -26,6 +29,9 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     db.run(posts.filter(_.id === id).filter(_.ownerId === ownerId).exists.result)
 
 
+  /*******
+   * GET *
+   *******/
   def all(): Future[Seq[Post]] =
     db.run(posts.result)
 
@@ -46,16 +52,22 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     db.run(posts.filter(_.title === title).filter(_.content === content).filter(_.ownerId === ownerId).sortBy(_.id).result)
 
 
+  /********
+   * POST *
+   ********/
   def insert(postInsertDto: PostInsertDto): Future[String] = dbConfig.db.run(
-    posts += new Post(null, postInsertDto.title, postInsertDto.content, new Date(System.currentTimeMillis()), 1))
+    posts += new Post(null, postInsertDto.title, postInsertDto.content, new Timestamp(System.currentTimeMillis()), postInsertDto.ownerId))
       .map(res => "Post successfully added").recover {
     case ex: Exception => ex.getCause.getMessage
   }
 
 
+  /*******
+   * PUT *
+   *******/
   def update(post: Post): Future[Post] = db.run(
     posts.filter(_.id === post.id)
-      .update(post.copy(post.id, post.title, post.content, new Date(System.currentTimeMillis()), post.ownerId)))
+      .update(post.copy(post.id, post.title, post.content, new Timestamp(System.currentTimeMillis()), post.ownerId)))
       .map(_ => post)
 
 
@@ -72,7 +84,7 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
     def title = column[String]("title")
     def content = column[String]("content")
-    def dateTime = column[Date]("date_time")
+    def dateTime = column[Timestamp]("date_time")
     def ownerId = column[Long]("owner_id")
 
     def * = (id, title, content, dateTime, ownerId) <> (Post.tupled, Post.unapply)

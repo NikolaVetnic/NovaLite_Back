@@ -16,6 +16,9 @@ class BefriendsDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   private val befriendsObjects = TableQuery[BefriendsTable]
 
 
+  /**********
+   * EXISTS *
+   **********/
   def exists(id0: Long, id1: Long) : Future[Boolean] =
     db.run(befriendsObjects.filter(b => {
       (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
@@ -23,49 +26,66 @@ class BefriendsDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
 
   def existsRequest(id0: Long, id1: Long): Future[Boolean] =
-    existsConnection(id0, id1, 1)
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
+    }).filter(_.status === 1).exists.result)
 
 
   def existsFriendship(id0: Long, id1: Long): Future[Boolean] =
-    existsConnection(id0, id1, 2)
-
-
-  def existsConnection(id0: Long, id1: Long, status: Int): Future[Boolean] =
     db.run(befriendsObjects.filter(b => {
       (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
-    }).filter(_.status === status).exists.result)
+    }).filter(_.status === 2).exists.result)
 
 
+  def requestSent(id0: Long, id1: Long) : Future[Boolean] =
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id0 && b.userId1 === id1 && b.status === 1)
+    }).exists.result)
+
+
+  def requestReceived(id0: Long, id1: Long) : Future[Boolean] =
+    db.run(befriendsObjects.filter(b => {
+      (b.userId0 === id1 && b.userId1 === id0 && b.status === 1)
+    }).exists.result)
+
+
+  /*******
+   * GET *
+   *******/
   def all() : Future[Seq[Befriends]] =
     db.run(befriendsObjects.result)
 
 
-  def get(id0: Long, id1: Long) : Future[Option[Befriends]] =
+  def getConnectionByUserIds(id0: Long, id1: Long) : Future[Option[Befriends]] =
     db.run(befriendsObjects.filter(b => {
       (b.userId0 === id0 && b.userId1 === id1) || (b.userId0 === id1 && b.userId1 === id0)
     }).result.headOption)
 
 
   def getRequestsByUserId(id: Long) : Future[Seq[Befriends]] =
-    getConnectionByUserId(id, 1)
+    db.run(befriendsObjects
+      .filter(b => b.userId0 === id || b.userId1 === id)
+      .filter(_.status === 1).result)
 
 
   def getFriendshipsByUserId(id: Long) : Future[Seq[Befriends]] =
-    getConnectionByUserId(id, 2)
-
-
-  def getConnectionByUserId(id: Long, status: Int) : Future[Seq[Befriends]] =
     db.run(befriendsObjects
       .filter(b => b.userId0 === id || b.userId1 === id)
-      .filter(_.status === status).result)
+      .filter(_.status === 2).result)
 
 
+  /********
+   * POST *
+   ********/
   def insert(befriends: Befriends): Future[String] =
     dbConfig.db.run(befriendsObjects += befriends).map(res => "Befriends object successfully added").recover {
       case ex: Exception => ex.getCause.getMessage
     }
 
 
+  /**********
+   * DELETE *
+   **********/
   def delete(id0: Long, id1: Long): Future[Unit] =
     db.run(befriendsObjects
       .filter(b => {

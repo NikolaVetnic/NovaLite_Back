@@ -1,34 +1,92 @@
 package services
 
 import dao.BefriendsDao
-import models.Befriends
+import models.{Befriends, User}
 import utils.EStatus
 import utils.EStatus.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class BefriendsService @Inject()(
   dao: BefriendsDao,
   userService: UserService)(implicit ex: ExecutionContext) {
 
 
-  def exists(befriends: Befriends): Future[Boolean] = dao.exists(befriends.userId0, befriends.userId1)
+  /**********
+   * EXISTS *
+   **********/
+  def exists(befriends: Befriends): Future[Boolean] =
+    dao.existsFriendship(befriends.userId0, befriends.userId1)
 
 
+  def existsRequest(befriends: Befriends): Future[Boolean] =
+    dao.existsRequest(befriends.userId0, befriends.userId1)
+
+
+  def existsFriendship(befriends: Befriends): Future[Boolean] =
+    dao.existsFriendship(befriends.userId0, befriends.userId1)
+
+
+  def requestSent(befriends: Befriends): Future[Boolean] =
+    dao.requestSent(befriends.userId0, befriends.userId1)
+
+
+  def requestReceived(befriends: Befriends): Future[Boolean] =
+    dao.requestReceived(befriends.userId0, befriends.userId1)
+
+
+  /*******
+   * GET *
+   *******/
   def all(): Future[Seq[Befriends]] = dao.all()
 
 
-  def get(userId0: Long, userId1: Long): Future[Option[Befriends]] = dao.get(userId0, userId1)
+  def getConnectionByUserIds(userId0: Long, userId1: Long): Future[Option[Befriends]] =
+    dao.getConnectionByUserIds(userId0, userId1)
 
 
-  def getRequestsByUserId(userId: Long): Future[Seq[Befriends]] = dao.getRequestsByUserId(userId)
+  def getRequestsByUserId(userId: Long): Future[Seq[Befriends]] =
+    dao.getRequestsByUserId(userId)
 
 
-  def getFriendshipsByUserId(userId: Long): Future[Seq[Befriends]] = dao.getFriendshipsByUserId(userId)
+  def getFriendshipsByUserId(userId: Long): Future[Seq[Befriends]] =
+    dao.getFriendshipsByUserId(userId)
 
 
-  def request(befriends: Befriends): Future[EStatus] = {
+  def getApplicantsByUserId(id: Long): Future[Seq[User]] = {
+    // TODO: write a concurrent version of this method
+    dao.getRequestsByUserId(id).map { requests =>
+      requests.map(request =>
+        if (request.userId0 != id)
+          request.userId0
+        else request.userId1
+      ).distinct.map(id =>
+        Await.result(userService.get(id), Duration.Inf).get
+      )
+    }
+  }
+
+
+  def getFriendsByUserId(id: Long): Future[Seq[User]] = {
+    // TODO: write a concurrent version of this method
+    dao.getFriendshipsByUserId(id).map { requests =>
+      requests.map(request =>
+        if (request.userId0 != id)
+          request.userId0
+        else request.userId1
+      ).distinct.map(id =>
+        Await.result(userService.get(id), Duration.Inf).get
+      )
+    }
+  }
+
+
+  /********
+   * POST *
+   ********/
+  def sendRequest(befriends: Befriends): Future[EStatus] = {
 
     val res = for {
       b0 <- Future { befriends.userId0 != befriends.userId1 }             // user0 and user1 are different users
@@ -50,7 +108,7 @@ class BefriendsService @Inject()(
   }
 
 
-  def accept(befriends: Befriends): Future[EStatus] = {
+  def acceptRequest(befriends: Befriends): Future[EStatus] = {
 
     val res = for {
       b0 <- Future { befriends.userId0 != befriends.userId1 }             // user0 and user1 are different users
@@ -76,6 +134,9 @@ class BefriendsService @Inject()(
   }
 
 
+  /**********
+   * DELETE *
+   **********/
   def deleteRequest(id0: Long, id1: Long): Future[EStatus] = {
 
     val res = for {

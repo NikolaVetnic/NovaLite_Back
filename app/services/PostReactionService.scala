@@ -16,11 +16,17 @@ class PostReactionService @Inject()(
   reactionService: ReactionService)(implicit ex: ExecutionContext) {
 
 
+  /**********
+   * EXISTS *
+   **********/
   def exists(postReaction: PostReaction): Future[Boolean] = {
     dao.exists(postReaction.userId, postReaction.postId)
   }
 
 
+  /*******
+   * GET *
+   *******/
   def getAll(): Future[Seq[PostReaction]] = {
     dao.all()
   }
@@ -36,11 +42,24 @@ class PostReactionService @Inject()(
   }
 
 
+  def getLikesByUserIdAndPostId(userId: Long, postId: Long): Future[Int] = {
+
+    val res = for {
+      likes <- dao.getLikesByUserIdAndPostId(userId, postId)
+    } yield likes.length
+
+    res
+  }
+
+
   def getByUserIdAndPostId(userId: Long, postId: Long): Future[Option[PostReaction]] = {
     dao.getByUserIdAndPostId(userId, postId)
   }
 
 
+  /********
+   * POST *
+   ********/
   def create(postReaction: PostReaction): Future[EStatus] = {
 
     val res = for {
@@ -62,6 +81,9 @@ class PostReactionService @Inject()(
   }
 
 
+  /**********
+   * DELETE *
+   **********/
   def delete(userId: Long, postId: Long): Future[EStatus] = {
     dao.exists(userId, postId).map {
       case true =>
