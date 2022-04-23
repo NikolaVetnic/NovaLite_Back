@@ -7,13 +7,13 @@ import play.api.Logger
 import play.api.data.Form
 import play.api.i18n.I18nSupport
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, InjectedController, Request, Result}
-import services.{CommentReactionService, CommentService, PostService}
+import play.api.mvc._
+import services.{CommentReactionService, CommentService}
 import utils.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class CommentController @Inject()(
@@ -36,10 +36,10 @@ class CommentController @Inject()(
     withFormErrorHandling(CommentInputDtoForm.create, "create failed") { commentDto =>
 
       val commentInsertDtoObject = CommentInsertDto(commentDto.content, request.user.id.get, commentDto.postId)
-      println("AAAA : " + commentInsertDtoObject)
+
       commentService.create(commentInsertDtoObject).map {
         case EStatus.Success =>
-          // FIXME: concurrency?
+          // TODO: write a concurrent version of this method
           Created(Json.obj("comment" -> (Await.result(commentService.getAll(), Duration.Inf).sortBy(_.id).last)))
         case EStatus.Failure =>
           BadRequest(Json.obj("status" -> "Post not persisted."))

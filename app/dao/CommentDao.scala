@@ -47,7 +47,7 @@ class CommentDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   /********
    * POST *
    ********/
-  def insert(commentInsertDto: CommentInsertDto): Future[String] = {println("I AM IN DAO : " + new Comment(null, commentInsertDto.content, new Timestamp(System.currentTimeMillis()), commentInsertDto.ownerId, commentInsertDto.postId)); dbConfig.db.run(
+  def insert(commentInsertDto: CommentInsertDto): Future[String] = { dbConfig.db.run(
     comments += new Comment(null, commentInsertDto.content, new Timestamp(System.currentTimeMillis()), commentInsertDto.ownerId, commentInsertDto.postId))
       .map(res => "Comment successfully added").recover {
     case ex: Exception => ex.getCause.getMessage
