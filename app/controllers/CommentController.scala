@@ -13,7 +13,7 @@ import utils.EStatus
 
 import javax.inject.Inject
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class CommentController @Inject()(
@@ -34,15 +34,8 @@ class CommentController @Inject()(
 
   def createComment: Action[AnyContent] = authAction.async { implicit request =>
     withFormErrorHandling(CommentInputDtoForm.create, "create failed") { commentDto =>
-
-      val commentInsertDtoObject = CommentInsertDto(commentDto.content, request.user.id.get, commentDto.postId)
-
-      commentService.create(commentInsertDtoObject).map {
-        case EStatus.Success =>
-          // TODO: write a concurrent version of this method
-          Created(Json.obj("comment" -> (Await.result(commentService.getAll(), Duration.Inf).sortBy(_.id).last)))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> "Post not persisted."))
+      commentService.create(CommentInsertDto(commentDto.content, request.user.id.get, commentDto.postId)).map {
+        comment => Created(Json.obj("comment" -> comment))
       }
     }
   }
@@ -62,14 +55,8 @@ class CommentController @Inject()(
 
   def updateComment: Action[AnyContent] = authAction.async { implicit request =>
     withFormErrorHandling(CommentUpdateDtoForm.create, "update failed") { commentUpdateDto =>
-
-      val updatedComment = Comment(commentUpdateDto.id, commentUpdateDto.content, null, commentUpdateDto.ownerId, commentUpdateDto.postId)
-
-      commentService.update(updatedComment).map {
-        case EStatus.Success =>
-          Ok(Json.obj("comment" -> Await.result(commentService.get(commentUpdateDto.id.get), Duration.Inf).get))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> ("Comment " + commentUpdateDto.id.get + " not found or not owned by User " + commentUpdateDto.ownerId + ".")))
+      commentService.update(Comment(commentUpdateDto.id, commentUpdateDto.content, null, commentUpdateDto.ownerId, commentUpdateDto.postId)).map {
+        comment => Ok(Json.obj("comment" -> comment))
       }
     }
   }

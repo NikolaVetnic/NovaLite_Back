@@ -12,8 +12,7 @@ import services.PostService
 import utils.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
@@ -59,15 +58,8 @@ class PostController @Inject()(
 
   def create: Action[AnyContent] = authAction.async { implicit request =>
     withFormErrorHandling(PostInputDtoForm.create, "create failed") { postDto =>
-
-      val postInsertDtoObject = PostInsertDto(postDto.title, postDto.content, request.user.id.get)
-
-      postService.create(postInsertDtoObject).map {
-        case EStatus.Success =>
-          // FIXME: concurrency?
-          Created(Json.obj("post" -> (Await.result(postService.getAll(), Duration.Inf).sortBy(_.id).last)))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> "Post not persisted."))
+      postService.create(PostInsertDto(postDto.title, postDto.content, request.user.id.get)).map {
+        post => Created(Json.obj("post" -> (post)))
       }
     }
   }
@@ -75,14 +67,8 @@ class PostController @Inject()(
 
   def update: Action[AnyContent] = authAction.async { implicit request =>
     withFormErrorHandling(PostUpdateDtoForm.create, "update failed") { postUpdateDto =>
-
-      val post = Post(postUpdateDto.id, postUpdateDto.title, postUpdateDto.content, null, request.user.id.get)
-
-      postService.update(post).map {
-        case EStatus.Success =>
-          Ok(Json.obj("post" -> Await.result(postService.get(post.id.get), Duration.Inf).get))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> ("Post " + post.id.get + " not found or not owned by User " + post.ownerId + ".")))
+      postService.update(Post(postUpdateDto.id, postUpdateDto.title, postUpdateDto.content, null, request.user.id.get)).map {
+        post => Ok(Json.obj("post" -> (post)))
       }
     }
   }

@@ -70,6 +70,10 @@ class CommentDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     db.run(comments.filter(_.id === id).delete).map(_ => ())
 
 
+  def deleteByPostId(postId: Long): Future[Unit] =
+    db.run(comments.filter(_.postId === postId).delete).map(_ => ())
+
+
   def deleteByIdAndOwnerId(id: Long, ownerId: Long): Future[Unit] =
     db.run(comments.filter(_.id === id).filter(_.ownerId === ownerId).delete).map(_ => ())
 

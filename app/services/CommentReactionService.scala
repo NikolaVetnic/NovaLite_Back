@@ -16,6 +16,14 @@ class CommentReactionService @Inject()(
   commentDao: CommentDao) (implicit ex: ExecutionContext) {
 
 
+  def getAll(): Future[Seq[CommentReaction]] =
+    dao.all();
+
+
+  def getAllLikes(): Future[Seq[CommentReaction]] =
+    dao.allLikes();
+
+
   def getByCommentId(id: Long): Future[Seq[CommentReaction]] =
     dao.getByCommentId(id);
 
@@ -54,6 +62,12 @@ class CommentReactionService @Inject()(
 
   def deleteIndiscriminately(commentId: Long): Future[EStatus] = {
     dao.deleteIndiscriminately(commentId)
+    Future {EStatus.Success}
+  }
+
+
+  def deleteByCommentId(commentId: Long): Future[EStatus] = {
+    dao.deleteByCommentId(commentId)
     Future {EStatus.Success}
   }
 }

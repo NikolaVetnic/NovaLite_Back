@@ -31,6 +31,10 @@ class PostReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     db.run(postReactions.result)
 
 
+  def allLikes() : Future[Seq[PostReaction]] =
+    db.run(postReactions.filter(_.reactionId === 1.toLong).result)
+
+
   def getByPostId(id: Long) : Future[Seq[PostReaction]] =
     db.run(postReactions.filter(_.postId === id).result)
 
@@ -69,6 +73,10 @@ class PostReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfigPr
    **********/
   def delete(userId: Long, postId: Long): Future[Unit] =
     db.run(postReactions.filter(_.userId === userId).filter(_.postId === postId).delete).map(_ => ())
+
+
+  def deleteByPostId(postId: Long): Future[Unit] =
+    db.run(postReactions.filter(_.postId === postId).delete).map(_ => ())
 
 
   private class PostReactionTable(tag: Tag) extends Table[PostReaction](tag, "post_reaction") {

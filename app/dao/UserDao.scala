@@ -31,6 +31,9 @@ class UserDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(
   def all(): Future[Seq[User]] = db.run(users.result)
 
 
+  def num(): Future[Int] = db.run(users.size.result)
+
+
   def get(id: Long): Future[Option[User]] =
     db.run(users.filter(_.id === id).result.headOption)
 

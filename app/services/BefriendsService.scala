@@ -6,8 +6,7 @@ import utils.EStatus
 import utils.EStatus.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 class BefriendsService @Inject()(
   dao: BefriendsDao,
@@ -56,29 +55,33 @@ class BefriendsService @Inject()(
 
 
   def getApplicantsByUserId(id: Long): Future[Seq[User]] = {
-    // TODO: write a concurrent version of this method
-    dao.getRequestsByUserId(id).map { requests =>
-      requests.map(request =>
+    for {
+      requests <- dao.getRequestsByUserId(id)
+      reqstIds = requests.map { request =>
         if (request.userId0 != id)
           request.userId0
-        else request.userId1
-      ).distinct.map(id =>
-        Await.result(userService.get(id), Duration.Inf).get
-      )
+        else
+          request.userId1
+      }
+      users <- userService.getAll()
+    } yield {
+      users.filter(user => reqstIds.contains(user.id.get))
     }
   }
 
 
   def getFriendsByUserId(id: Long): Future[Seq[User]] = {
-    // TODO: write a concurrent version of this method
-    dao.getFriendshipsByUserId(id).map { requests =>
-      requests.map(request =>
+    for {
+      requests <- dao.getFriendshipsByUserId(id)
+      reqstIds = requests.map { request =>
         if (request.userId0 != id)
           request.userId0
-        else request.userId1
-      ).distinct.map(id =>
-        Await.result(userService.get(id), Duration.Inf).get
-      )
+        else
+          request.userId1
+      }
+      users <- userService.getAll()
+    } yield {
+      users.filter(user => reqstIds.contains(user.id.get))
     }
   }
 

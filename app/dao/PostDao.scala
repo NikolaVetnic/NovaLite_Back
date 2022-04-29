@@ -36,8 +36,12 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     db.run(posts.result)
 
 
+  def num(): Future[Int] =
+    db.run(posts.size.result)
+
+
   def get(id: Long): Future[Option[Post]] =
-    db.run(posts.filter(_.id === id).sortBy(_.id).result.headOption)
+    db.run(posts.filter(_.id === id).result.headOption)
 
 
   def getByOwnerId(ownerId: Long): Future[Seq[Post]] =
@@ -57,7 +61,7 @@ class PostDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
    ********/
   def insert(postInsertDto: PostInsertDto): Future[String] = dbConfig.db.run(
     posts += new Post(null, postInsertDto.title, postInsertDto.content, new Timestamp(System.currentTimeMillis()), postInsertDto.ownerId))
-      .map(res => "Post successfully added").recover {
+      .map(res => "Post successfully added" + res).recover {
     case ex: Exception => ex.getCause.getMessage
   }
 

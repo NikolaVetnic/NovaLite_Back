@@ -8,7 +8,7 @@ import utils.EStatus.EStatus
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: ExecutionContext) {
+class UserService @Inject()(dao: UserDao)(implicit ex: ExecutionContext) {
 
 
   def existsId(id: Long): Future[Boolean] = {
@@ -41,26 +41,23 @@ class UserService @Inject()(dao: UserDao, roleDao: RoleDao)(implicit ex: Executi
   }
 
 
-  def create(user: User): Future[EStatus] = {
-
-    val res = for {
-      b0 <- dao.existsUsername(user.username)
-      b1 <- roleDao.exists(user.roleId)
-    } yield !b0 && b1
-
-    res.map {
-      case true => {
-        dao.insert(user)
-        EStatus.Success
-      }
-      case false => {
-        EStatus.Failure
-      }
-    }
+  def create(user: User): Future[User] = {
+    for {
+      _ <- dao.insert(user)
+      users <- dao.all()
+    } yield users.sortBy(_.id).last
   }
 
 
-  def update(user: User): Future[EStatus] = {
+  def update(user: User): Future[Option[User]] = {
+    for {
+      _ <- dao.update(user)
+      user <- get(user.id.get)
+    } yield user
+  }
+
+
+  def update2(user: User): Future[EStatus] = {
     existsId(user.id.get).map {
       case true =>
         dao.update(user)

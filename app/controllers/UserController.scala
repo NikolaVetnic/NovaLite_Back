@@ -12,8 +12,7 @@ import services.UserService
 import utils.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
@@ -62,11 +61,7 @@ class UserController @Inject()(
   def create: Action[AnyContent] = Action.async { implicit request =>
     withFormErrorHandling(UserForm.create, "create failed") { user =>
       userService.create(user).map {
-        case EStatus.Success =>
-          // FIXME: concurrency?
-          Created(Json.obj("user" -> Await.result(userService.getAll(), Duration.Inf).sortBy(_.id).last))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> "User not persisted."))
+        user => Created(Json.obj("user" -> user))
       }
     }
   }
@@ -74,16 +69,9 @@ class UserController @Inject()(
 
   def updateSelf: Action[AnyContent] = authAction.async { implicit request =>
     withFormErrorHandling(UserDtoForm.create, "update failed") { userDto =>
-
-      val updatedUser = User(
-        request.user.id, request.user.username, userDto.firstName, userDto.lastName,
-        request.user.password, userDto.imgUrl, request.user.roleId)
-
-      userService.update(updatedUser).map {
-        case EStatus.Success =>
-          Ok(Json.obj("user" -> (updatedUser)))
-        case EStatus.Failure =>
-          BadRequest(Json.obj("status" -> "User not found."))
+      userService.update(User(request.user.id, request.user.username, userDto.firstName, userDto.lastName, request.user.password,
+        userDto.imgUrl, request.user.roleId)).map {
+        updatedUser => Ok(Json.obj("user" -> updatedUser))
       }
     }
   }

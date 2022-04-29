@@ -27,6 +27,14 @@ class CommentReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfi
   /*******
    * GET *
    *******/
+  def all(): Future[Seq[CommentReaction]] =
+    db.run(commentReactions.result)
+
+
+  def allLikes() : Future[Seq[CommentReaction]] =
+    db.run(commentReactions.filter(_.reactionId === 1.toLong).result)
+
+
   def getByCommentId(id: Long): Future[Seq[CommentReaction]] =
     db.run(commentReactions.filter(_.commentId === id).filter(_.reactionId === 1.toLong).result)
 
@@ -48,6 +56,10 @@ class CommentReactionDao @Inject()(protected val dbConfigProvider: DatabaseConfi
 
 
   def deleteIndiscriminately(commentId: Long): Future[Unit] =
+    db.run(commentReactions.filter(_.commentId === commentId).delete).map(_ => ())
+
+
+  def deleteByCommentId(commentId: Long): Future[Unit] =
     db.run(commentReactions.filter(_.commentId === commentId).delete).map(_ => ())
 
 

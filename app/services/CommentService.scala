@@ -1,15 +1,17 @@
 package services
 
-import dao.{CommentDao, CommentReactionDao, PostDao, PostReactionDao}
-import models.{Comment, CommentDisplayDto, CommentInsertDto, Post, PostDisplayDto, PostInsertDto}
+import dao.CommentDao
+import models.{Comment, CommentDisplayDto, CommentInsertDto}
 import utils.EStatus
 import utils.EStatus.EStatus
 
 import javax.inject.Inject
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
-class CommentService @Inject()(dao: CommentDao, userService: UserService, commentReactionService: CommentReactionService)(implicit ex: ExecutionContext) {
+class CommentService @Inject()(
+  dao: CommentDao,
+  userService: UserService,
+  commentReactionService: CommentReactionService)(implicit ex: ExecutionContext) {
 
 
   /**********
@@ -33,15 +35,21 @@ class CommentService @Inject()(dao: CommentDao, userService: UserService, commen
 
 
   def getByPostId(id: Long): Future[Seq[CommentDisplayDto]] = {
-    // TODO: write a concurrent version of this method
-    dao.getByPostId(id).map { comments =>
-      comments.map(comment => {
-        val currUser = Await.result(userService.get(comment.ownerId), Duration.Inf).get
-        val numLikes = Await.result(commentReactionService.getByCommentId(comment.id.get), Duration.Inf)
-
-        CommentDisplayDto(comment.id.get, comment.content, comment.dateTime.toLocalDateTime,
-          currUser, comment.postId, numLikes.size)
-      })
+    for {
+      comments <- dao.getByPostId(id)
+      users <- userService.getAll()
+      likes <- commentReactionService.getAllLikes()
+    } yield {
+      comments.map { comment =>
+        CommentDisplayDto(
+          comment.id.get,
+          comment.content,
+          comment.dateTime.toLocalDateTime,
+          users.filter(user => user.id.get == comment.ownerId).head,
+          comment.postId,
+          likes.filter(_.commentId == comment.id.get).size
+        )
+      }
     }
   }
 
@@ -75,19 +83,16 @@ class CommentService @Inject()(dao: CommentDao, userService: UserService, commen
 
 
   def delete(id: Long): Future[EStatus] = {
-
-    dao.exists(id).map {
-      case true =>
-        // TODO: write a concurrent version of this method
-        val commentReactions = Await.result(commentReactionService.getByCommentId(id), Duration.Inf)
-
-        commentReactions.map(p =>
-          commentReactionService.delete(p.userId, p.commentId))
+    for {
+      b <- dao.exists(id)
+      _ <- commentReactionService.deleteByCommentId(id)
+    } yield {
+      if (b) {
         dao.delete(id)
-
         EStatus.Success
-      case false =>
+      } else {
         EStatus.Failure
+      }
     }
   }
 }
