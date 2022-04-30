@@ -2,7 +2,7 @@
 
 [![React Movie Cards](http://nikolapacekvetnic.rs/wp-content/uploads/2022/04/Screenshot-2022-04-30-at-15.51.42.png)](https://www.youtube.com/watch?v=F2h2JEQKnHU)
 
-NovaLite Internship Project, Social Network Backend.
+NovaLite Internship Project, Social Network Backend. Click the image for video demonstration of the project.
 
 ## Functionalities
 
