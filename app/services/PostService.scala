@@ -1,6 +1,6 @@
 package services
 
-import dao.{CommentDao, PostDao, PostReactionDao}
+import dao.{PostDao, PostReactionDao}
 import models.{Post, PostDisplayDto, PostInsertDto}
 import utils.EStatus
 import utils.EStatus.EStatus
@@ -13,7 +13,7 @@ class PostService @Inject()(
   userService: UserService,
   befriendsService: BefriendsService,
   postReactionDao: PostReactionDao,
-  commentDao: CommentDao)(implicit ex: ExecutionContext) {
+  commentService: CommentService)(implicit ex: ExecutionContext) {
 
 
   /**********
@@ -114,7 +114,7 @@ class PostService @Inject()(
   def delete(id: Long): Future[EStatus] = {
     for {
       b <- dao.exists(id)
-      _ <- commentDao.deleteByPostId(id)
+      _ <- commentService.deleteByPostId(id)
       _ <- postReactionDao.deleteByPostId(id)
     } yield {
       if (b) {

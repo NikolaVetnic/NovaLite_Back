@@ -36,6 +36,10 @@ class CommentDao @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     db.run(comments.result)
 
 
+  def num(): Future[Int] =
+    db.run(comments.size.result)
+
+
   def get(id: Long): Future[Option[Comment]] =
     db.run(comments.filter(_.id === id).sortBy(_.id).result.headOption)
 

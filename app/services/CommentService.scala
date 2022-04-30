@@ -57,27 +57,35 @@ class CommentService @Inject()(
   /********
    * POST *
    ********/
-  def create(commentDto: CommentInsertDto): Future[EStatus] = {
-    userService.existsId(commentDto.ownerId).map {
-      case true =>
-        dao.insert(commentDto)
-        EStatus.Success
-      case false =>
-        EStatus.Failure
-    }
+  def create(commentInsertDto: CommentInsertDto): Future[Option[Comment]] = {
+    for {
+      _ <- dao.insert(commentInsertDto)
+      s <- dao.num()
+      comments <- getAll()
+    } yield comments.sortBy(_.id).drop(s - 1).find(c => true)
   }
 
 
   /*******
    * PUT *
    *******/
-  def update(comment: Comment): Future[EStatus] = {
-    dao.existsAndOwnedBy(comment.id.get, comment.ownerId).map {
-      case true =>
-        dao.update(comment)
-        EStatus.Success
-      case false =>
-        EStatus.Failure
+  def update(comment: Comment): Future[Option[Comment]] = {
+    for {
+      _ <- dao.update(comment)
+      comment <- get(comment.id.get)
+    } yield comment
+  }
+
+
+  def deleteByPostId(postId: Long): Future[EStatus] = {
+    for {
+      comments <- dao.getByPostId(postId)
+    } yield {
+      comments.map { c =>
+        commentReactionService.deleteByCommentId(c.id.get)
+        dao.delete(c.id.get)
+      }
+      EStatus.Success
     }
   }
 
